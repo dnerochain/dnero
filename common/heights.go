@@ -1,19 +1,19 @@
 package common
 
 // HeightEnableValidatorReward specifies the minimal block height to enable the validtor DFUEL reward
-const HeightEnableValidatorReward uint64 = 4164982 // approximate time: 2pm January 14th, 2020 PST
+const HeightEnableValidatorReward uint64 = 101 // block #101
 
 // HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1 feature.
-const HeightEnableDneroV1 uint64 = 5877350 // approximate time: 12pm May 27th, 2020 PDT
+const HeightEnableDneroV1 uint64 = 102 // block #102
 
 // HeightLowerGNStakeThresholdTo1000 specifies the minimal block height to lower the GN Stake Threshold to 1,000 DNERO
-const HeightLowerGNStakeThresholdTo1000 uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
+const HeightLowerGNStakeThresholdTo1000 uint64 = 103 // block #103
 
 // HeightEnableSmartContract specifies the minimal block height to eanble the Turing-complete smart contract support
-const HeightEnableSmartContract uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
+const HeightEnableSmartContract uint64 = 104 // block #104
 
 // HeightSampleStakingReward specifies the block heigth to enable sampling of staking reward
-const HeightSampleStakingReward uint64 = 9497418 // approximate time: 7pm Mar 10th, 2021 PST
+const HeightSampleStakingReward uint64 = 105 // block #105
 
 // CheckpointInterval defines the interval between checkpoints.
 const CheckpointInterval = int64(100)
