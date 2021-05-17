@@ -19,7 +19,7 @@ import (
 )
 
 var weiMultiplier = big.NewInt(1e18)
-var dfuelRewardPerBlock = big.NewInt(1).Mul(big.NewInt(48), weiMultiplier) // 48 DFUEL per block, corresponds to about 5% *initial* annual inflation rate. The inflation rate naturally approaches 0 as the chain grows.
+var dfuelRewardPerBlock = big.NewInt(1).Mul(big.NewInt(5), weiMultiplier) // 5 DFUEL per block
 var dfuelRewardN = 400                                                     // Reward receiver sampling params
 
 var _ TxExecutor = (*CoinbaseTxExecutor)(nil)
