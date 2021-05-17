@@ -157,15 +157,15 @@ func (a *AggregatedVotes) Copy() *AggregatedVotes {
 var (
 	MinGuardianStakeDeposit *big.Int
 
-	MinGuardianStakeDeposit1000 *big.Int
+	MinGuardianStakeDeposit100 *big.Int
 )
 
 func init() {
-	// Each stake deposit needs to be at least 10,000 Dnero
-	MinGuardianStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(10000), new(big.Int).SetUint64(1e18))
+	// Each stake deposit needs to be at least 100 Dnero
+	MinGuardianStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(100), new(big.Int).SetUint64(1e18))
 
 	// Lowering the guardian stake threshold to 1,000 Dnero
-	MinGuardianStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
+	MinGuardianStakeDeposit100 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
 
 }
 
@@ -289,8 +289,8 @@ func (gcp *GuardianCandidatePool) Hash() common.Hash {
 
 func (gcp *GuardianCandidatePool) DepositStake(source common.Address, holder common.Address, amount *big.Int, pubkey *bls.PublicKey, blockHeight uint64) (err error) {
 	minGuardianStake := MinGuardianStakeDeposit
-	if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 {
-		minGuardianStake = MinGuardianStakeDeposit1000
+	if blockHeight >= common.HeightLowerGNStakeThresholdTo100 {
+		minGuardianStake = MinGuardianStakeDeposit100
 	}
 	if amount.Cmp(minGuardianStake) < 0 {
 		return fmt.Errorf("Insufficient stake: %v", amount)

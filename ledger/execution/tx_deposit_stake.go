@@ -79,8 +79,8 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 
 	if tx.Purpose == core.StakeForGuardian {
 		minGuardianStake := core.MinGuardianStakeDeposit
-		if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 {
-			minGuardianStake = core.MinGuardianStakeDeposit1000
+		if blockHeight >= common.HeightLowerGNStakeThresholdTo100 {
+			minGuardianStake = core.MinGuardianStakeDeposit100
 		}
 		if stake.DneroWei.Cmp(minGuardianStake) < 0 {
 			return result.Error("Insufficient amount of stake, at least %v DneroWei is required for each guardian deposit", minGuardianStake).
