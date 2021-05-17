@@ -173,8 +173,8 @@ var (
 )
 
 func init() {
-	// Each stake deposit needs to be at least 2,000,000 Dnero
-	MinValidatorStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(2000000), new(big.Int).SetUint64(1000000000000000000))
+	// Each stake deposit needs to be at least 200000 Dnero
+	MinValidatorStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(200000), new(big.Int).SetUint64(1000000000000000000))
 }
 
 type ValidatorCandidatePool struct {
