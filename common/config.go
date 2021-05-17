@@ -14,7 +14,7 @@ const (
 	// CfgKeyPath defines custom key path
 	CfgKeyPath = "key.path"
 
-	// CfgForceValidateSnapshot defines wether validation of snapshot can be skipped
+	// CfgForceValidateSnapshot defines weather validation of snapshot can be skipped
 	CfgForceValidateSnapshot = "snapshot.force_validate"
 
 	// CfgGenesisHash defines the hash of the genesis block
@@ -22,7 +22,7 @@ const (
 	// CfgGenesisChainID defines the chainID.
 	CfgGenesisChainID = "genesis.chainID"
 
-	// CfgConsensusMaxEpochLength defines the maxium length of an epoch.
+	// CfgConsensusMaxEpochLength defines the maximum length of an epoch.
 	CfgConsensusMaxEpochLength = "consensus.maxEpochLength"
 	// CfgConsensusMinProposalWait defines the minimal interval between proposals.
 	CfgConsensusMinProposalWait = "consensus.minProposalWait"
@@ -33,7 +33,7 @@ const (
 
 	// CfgStorageStatePruningEnabled indicates whether state pruning is enabled
 	CfgStorageStatePruningEnabled = "storage.statePruningEnabled"
-	// CfgStorageStatePruningInterval indicates the purning interval (in terms of blocks)
+	// CfgStorageStatePruningInterval indicates the pruning interval (in terms of blocks)
 	CfgStorageStatePruningInterval = "storage.statePruningInterval"
 	// CfgStorageStatePruningRetainedBlocks indicates the number of blocks prior to the latest finalized block to be retained
 	CfgStorageStatePruningRetainedBlocks = "storage.statePruningRetainedBlocks"
@@ -135,8 +135,8 @@ const (
 // InitialConfig is the default configuration produced by init command.
 const InitialConfig = `# Dnero configuration
 p2p:
-  port: 5000
-  seeds: 127.0.0.1:6000,127.0.0.1:7000
+  port: 4000
+  seeds: 127.0.0.1:5000,127.0.0.1:6000
 `
 
 func init() {
@@ -161,7 +161,7 @@ func init() {
 	viper.SetDefault(CfgRPCEnabled, false)
 	viper.SetDefault(CfgP2PMessageQueueSize, 512)
 	viper.SetDefault(CfgP2PName, "Anonymous")
-	viper.SetDefault(CfgP2PPort, 50001)
+	viper.SetDefault(CfgP2PPort, 41000)
 	viper.SetDefault(CfgP2PSeeds, "")
 	viper.SetDefault(CfgP2PSeedPeerOnlyOutbound, false)
 	//viper.SetDefault(CfgP2POpt, P2POptLibp2p) // FIXME: this for some reason doesn't work
@@ -179,7 +179,7 @@ func init() {
 	viper.SetDefault(CfgP2PMaxConnections, 2048)
 
 	viper.SetDefault(CfgRPCAddress, "0.0.0.0")
-	viper.SetDefault(CfgRPCPort, "16888")
+	viper.SetDefault(CfgRPCPort, "14111")
 	viper.SetDefault(CfgRPCMaxConnections, 200)
 	viper.SetDefault(CfgRPCTimeoutSecs, 60)
 
