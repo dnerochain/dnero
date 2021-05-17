@@ -6,8 +6,8 @@ const HeightEnableValidatorReward uint64 = 101 // block #101
 // HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1 feature.
 const HeightEnableDneroV1 uint64 = 102 // block #102
 
-// HeightLowerGNStakeThresholdTo100 specifies the minimal block height to lower the GN Stake Threshold to 1,000 DNERO
-const HeightLowerGNStakeThresholdTo100 uint64 = 103 // block #103
+// HeightLowerGNStakeThresholdTo100 specifies the minimal block height to lower the GN Stake Threshold to 100 DNERO
+//const HeightLowerGNStakeThresholdTo100 uint64 = 103 // block #103 //StakeDeposit Fork Removed
 
 // HeightEnableSmartContract specifies the minimal block height to eanble the Turing-complete smart contract support
 const HeightEnableSmartContract uint64 = 104 // block #104
