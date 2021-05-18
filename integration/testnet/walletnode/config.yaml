@@ -1,11 +1,11 @@
-# Dnero configuration
+# Dnero testnet node configuration
 genesis:
   hash: "0x00"
 storage:
   statePruningRetainedBlocks: 2048
 p2p:
   port: 15001
-  seeds: IP:PORT
+  #seeds: IP:PORT
 rpc:
   enabled: true
 log:
