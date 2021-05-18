@@ -1,11 +1,11 @@
 # Dnero configuration
 genesis:
-  hash: "0xa58cb754a23975c872ef06d8b54baf16eec88ad60f966368b950a6c16ae52ed9"
+  hash: "0x00"
 storage:
   statePruningRetainedBlocks: 2048
 p2p:
-  port: 16000
-  seeds: 54.219.137.110:15872
+  port: 15001
+  seeds: IP:PORT
 rpc:
   enabled: true
 log:
