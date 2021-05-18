@@ -4,7 +4,7 @@ storage:
 p2p:
   opt: 0
   port: 31000
-  seeds: IP:PORT,IP:PORT,IP:PORT
+  #seeds: IP:PORT,IP:PORT,IP:PORT
   minNumPeers: 24
   maxNumPeers: 96
   natMapping: true
