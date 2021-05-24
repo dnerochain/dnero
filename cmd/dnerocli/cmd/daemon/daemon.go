@@ -11,12 +11,12 @@ import (
 
 // startDaemonCmd runs the dnerocli daemon
 // Example:
-//		dnerocli daemon start --port=16889
+//		dnerocli daemon start --port=14511
 var startDaemonCmd = &cobra.Command{
 	Use:     "start",
 	Short:   "Run the dnerocli daemon",
 	Long:    `Run the dnerocli daemon.`,
-	Example: `dnerocli daemon start --port=16889`,
+	Example: `dnerocli daemon start --port=14511`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfgPath := cmd.Flag("config").Value.String()
 		server, err := rpc.NewDneroCliRPCServer(cfgPath, portFlag)
@@ -32,7 +32,7 @@ var startDaemonCmd = &cobra.Command{
 }
 
 func init() {
-	startDaemonCmd.Flags().StringVar(&portFlag, "port", "16889", "Port to run the DneroCli Daemon")
+	startDaemonCmd.Flags().StringVar(&portFlag, "port", "14511", "Port to run the DneroCli Daemon")
 }
 
 type DneroCliDaemon struct {
