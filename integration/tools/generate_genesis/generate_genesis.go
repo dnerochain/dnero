@@ -113,7 +113,7 @@ func generateGenesisSnapshot(chainID, allocationSnapshotJSONFilePath, stakeDepos
 }
 
 func loadInitialBalances(allocationSnapshotJSONFilePath string) *state.StoreView {
-	initDFuelToDneroRatio := new(big.Int).SetUint64(5)
+	initDFuelToDneroRatio := new(big.Int).SetUint64(10)
 	sv := state.NewStoreView(0, common.Hash{}, backend.NewMemDatabase())
 
 	allocationSnapshotJSONFile, err := os.Open(allocationSnapshotJSONFilePath)
