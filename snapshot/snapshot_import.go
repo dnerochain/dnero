@@ -802,7 +802,7 @@ func checkGenesisBlock(block *core.BlockHeader, db database.Database) (*core.Val
 	}
 
 	// logger.Infof("Expected genesis hash: %v", expectedGenesisHash)
-	// logger.Infof("Acutal   genesis hash: %v", block.Hash().Hex())
+	// logger.Infof("Actual   genesis hash: %v", block.Hash().Hex())
 
 	if block.Hash() != common.HexToHash(expectedGenesisHash) {
 		return nil, fmt.Errorf("Genesis block hash mismatch, expected: %v, calculated: %v",
