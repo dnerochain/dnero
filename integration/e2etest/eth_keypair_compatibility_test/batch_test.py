@@ -11,8 +11,8 @@ DNEROCLI_ROOT = '~/.dnerocli'
 NEW_ACCOUNT_PASSWORD_FILEPATH = './new_account_password.txt'
 FAUCET_ADDRESS = '0x9f1233798e905e173560071255140b4a8abd3ec6'
 FAUCET_PASSWORD = 'qwertyuiop'
-UNLOCK_KEY_CMD_TMPL = """curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"dnerocli.UnlockKey","params":[{"address":"%s", "password":"%s"}],"id":1}' http://localhost:16889/rpc"""
-SEND_CMD_TMPL = """curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"dnerocli.Send","params":[{"chain_id":"testnet", "from":"%s", "to":"%s", "dnerowei":"%s", "dfuelwei":"%s", "fee":"1000000000000", "sequence":"%s", "async":false}],"id":1}' --silent --output /dev/null http://localhost:16889/rpc"""
+UNLOCK_KEY_CMD_TMPL = """curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"dnerocli.UnlockKey","params":[{"address":"%s", "password":"%s"}],"id":1}' http://localhost:14511/rpc"""
+SEND_CMD_TMPL = """curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"dnerocli.Send","params":[{"chain_id":"testnet", "from":"%s", "to":"%s", "dnerowei":"%s", "dfuelwei":"%s", "fee":"1000000000000", "sequence":"%s", "async":false}],"id":1}' --silent --output /dev/null http://localhost:14511/rpc"""
 
 def GenerateNewKeystore():
   geth_cmd = 'geth account new --datadir "%s" --password %s'%(ETHEREUM_ROOT, NEW_ACCOUNT_PASSWORD_FILEPATH)
@@ -91,7 +91,7 @@ def BatchTest(init_faucet_seq):
 # __MAIN__
 #
 # Before running this script, we need to launch both the `dnero` and `dnerocli` daemon connected 
-# to the testnet, and running  at port 16888 and 16889 respectively. Also need to install Geth
+# to the testnet, and running  at port 14411 and 14511 respectively. Also need to install Geth
 # to generate new ethereum accounts
 #
 if __name__ == '__main__':

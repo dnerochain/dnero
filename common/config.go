@@ -179,7 +179,7 @@ func init() {
 	viper.SetDefault(CfgP2PMaxConnections, 2048)
 
 	viper.SetDefault(CfgRPCAddress, "0.0.0.0")
-	viper.SetDefault(CfgRPCPort, "14111")
+	viper.SetDefault(CfgRPCPort, "14411")
 	viper.SetDefault(CfgRPCMaxConnections, 200)
 	viper.SetDefault(CfgRPCTimeoutSecs, 60)
 
