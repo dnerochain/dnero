@@ -9,7 +9,7 @@ p2p:
   maxNumPeers: 96
   natMapping: true
 rpc:
-  port: 14411
+  port: 15511
   enabled: true
   address: 127.0.0.1
 log:
