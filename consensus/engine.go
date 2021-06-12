@@ -1231,7 +1231,8 @@ func isSyncing(lastestFinalizedBlock *core.ExtendedBlock, currentHeight uint64) 
 		return true
 	}
 	currentTime := big.NewInt(time.Now().Unix())
-	maxDiff := new(big.Int).SetUint64(30) // thirty seconds, about 5 blocks
+	//maxDiff := new(big.Int).SetUint64(30) // thirty seconds, about 5 blocks
+	maxDiff := new(big.Int).SetUint64(300) // Dnero Max Diff set to 5 Min ~5 blocks with 60s/block
 	threshold := new(big.Int).Sub(currentTime, maxDiff)
 	isSyncing := lastestFinalizedBlock.Timestamp.Cmp(threshold) < 0
 
