@@ -11,9 +11,8 @@ const (
 
 /** TESTCHAIN - GENESIS v0.X.X **/
 const (
-	MainnetChainID = "testchain"
+	MainnetChainID = "testchainnet"
 
-    //TestChain Genesis
 	MainnetGenesisBlockHash = "0x00"
 
 	GenesisBlockHeight = uint64(0)
