@@ -119,7 +119,7 @@ func (exec *SlashTxExecutor) process(chainID string, view *st.StoreView, transac
 	//       transferring to the proposer, so the proposer gain no extra benefit if it colludes with
 	//       the address that overspent
 
-	// Slash: transfer the collateral and remainding deposit to the validator that identified the overspending
+	// Slash: transfer the collateral and remaining deposit to the validator that identified the overspending
 	remainingFund := reservedFund.InitialFund.Minus(reservedFund.UsedFund)
 	if !remainingFund.IsNonnegative() {
 		remainingFund = types.NewCoins(0, 0) // Should NOT happen, just to be on the safe side
