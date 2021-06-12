@@ -142,8 +142,10 @@ p2p:
 func init() {
 	viper.SetDefault(CfgForceValidateSnapshot, false)
 
-	viper.SetDefault(CfgConsensusMaxEpochLength, 10)
-	viper.SetDefault(CfgConsensusMinProposalWait, 6)
+	//viper.SetDefault(CfgConsensusMaxEpochLength, 10)
+	//viper.SetDefault(CfgConsensusMinProposalWait, 6)
+	viper.SetDefault(CfgConsensusMaxEpochLength, 100) // Dnero Max Epoch Length 100
+	viper.SetDefault(CfgConsensusMinProposalWait, 60) // Dnero Min Proposal Wait 60s
 	viper.SetDefault(CfgConsensusMessageQueueSize, 512)
 	viper.SetDefault(CfgConsensusPassThroughGuardianVote, false)
 
@@ -162,7 +164,7 @@ func init() {
 	viper.SetDefault(CfgP2PMessageQueueSize, 512)
 	viper.SetDefault(CfgP2PName, "Anonymous")
 	viper.SetDefault(CfgP2PPort, 41000)
-	viper.SetDefault(CfgP2PSeeds, "")
+	viper.SetDefault(CfgP2PSeeds, "") //TODO: Hardcode main seeds
 	viper.SetDefault(CfgP2PSeedPeerOnlyOutbound, false)
 	//viper.SetDefault(CfgP2POpt, P2POptLibp2p) // FIXME: this for some reason doesn't work
 	viper.SetDefault(CfgP2POpt, 0)
@@ -188,7 +190,7 @@ func init() {
 
 	viper.SetDefault(CfgGuardianRoundLength, 30)
 
-	viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org")
+	//viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org") //TODO: Metrics Disabled For Now
 
 	viper.SetDefault(CfgProfEnabled, false)
 	viper.SetDefault(CfgForceGCEnabled, true)
