@@ -52,7 +52,8 @@ type Reporter struct {
 
 // NewReporter instantiates a reporter instance
 func NewReporter(disp *dp.Dispatcher, consensus *consensus.ConsensusEngine, chain *blockchain.Chain) *Reporter {
-	peerUrl = "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix
+	//peerUrl = "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix //TODO: Metrics Disabled For Now
+	peerUrl = "http://" + reportPeersPort + setPeersSuffix 
 	ipAddr, err := util.GetPublicIP()
 	if err != nil {
 		logger.Errorf("Reporter failed to retrieve the node's IP address: %v", err)
@@ -122,7 +123,8 @@ func (rp *Reporter) statusToString() string {
 }
 
 func (rp *Reporter) handlePeers() {
-	url := "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix
+	//url := "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix //TODO: Metrics Disabled For Now
+	url := "http://" + reportPeersPort + setPeersSuffix
 	jsonStr := fmt.Sprintf("{\"id\":\"%s\", \"ip\": \"%s\", \"peers\" : [%s], %s}",
 		rp.id, rp.ipAddr, rp.peersToString(), rp.statusToString())
 	data := []byte(jsonStr)
@@ -163,7 +165,8 @@ func (rp *Reporter) peersToString() string {
 
 func isSyncing(block *core.ExtendedBlock) bool {
 	currentTime := big.NewInt(time.Now().Unix())
-	maxDiff := new(big.Int).SetUint64(30) // thirty seconds, about 5 blocks
+	//maxDiff := new(big.Int).SetUint64(30) // thirty seconds, about 5 blocks
+	maxDiff := new(big.Int).SetUint64(300) // Dnero Max Diff set to 5 Min ~5 blocks with 60s/block
 	threshold := new(big.Int).Sub(currentTime, maxDiff)
 	isSyncing := block.Timestamp.Cmp(threshold) < 0
 	return isSyncing
