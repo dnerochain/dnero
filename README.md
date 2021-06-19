@@ -1,3 +1,3 @@
 # Dnero Blockchain Ledger Protocol
-TestChain v0.2.0
+TestChainnet
 Not ready for production
