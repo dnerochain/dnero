@@ -188,7 +188,7 @@ func init() {
 	viper.SetDefault(CfgLogLevels, "*:debug")
 	viper.SetDefault(CfgLogPrintSelfID, false)
 
-	viper.SetDefault(CfgGuardianRoundLength, 30)
+	viper.SetDefault(CfgGuardianRoundLength, 300)
 
 	//viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org") //TODO: Metrics Disabled For Now
 
