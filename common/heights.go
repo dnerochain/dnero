@@ -1,10 +1,10 @@
 package common
 
-// HeightEnableValidatorReward specifies the minimal block height to enable the Validator DFUEL reward
-const HeightEnableValidatorReward uint64 = 101 // block #101
-
 // HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1 feature.
-const HeightEnableDneroV1 uint64 = 201 // block #201
+const HeightEnableDneroV1 uint64 = 101 // TODO MAINNET: start HeightEnableDneroV1 at block #101
+
+// HeightEnableValidatorReward specifies the minimal block height to enable the Validator DFUEL reward
+const HeightEnableValidatorReward uint64 = 201 // TODO MAINNET: start HeightEnableValidatorReward at block #201
 
 // HeightLowerGNStakeThresholdTo100 specifies the minimal block height to lower the GN Stake Threshold to 100 DNERO
 //const HeightLowerGNStakeThresholdTo100 uint64 = ### // block #000 //GN StakeDeposit Fork Removed
