@@ -1,15 +1,17 @@
 package common
 
-// HeightEnableValidatorReward specifies the minimal block height to enable the validtor DTOKEN reward
+// HeightEnableValidatorReward specifies the minimal block height to enable the validator DTOKEN reward
 const HeightEnableValidatorReward uint64 = 4164982 // approximate time: 2pm January 14th, 2020 PST
 
 // HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1.0 feature.
 const HeightEnableDneroV1 uint64 = 5877350 // approximate time: 12pm May 27th, 2020 PDT
 
+//Clean
 // HeightLowerGNStakeThresholdTo1000 specifies the minimal block height to lower the GN Stake Threshold to 1,000 DNERO
-const HeightLowerGNStakeThresholdTo1000 uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
+//const HeightLowerGNStakeThresholdTo1000 uint64 = ### // StakeDeposit Fork Removed
+//Clean
 
-// HeightEnableSmartContract specifies the minimal block height to eanble the Turing-complete smart contract support
+// HeightEnableSmartContract specifies the minimal block height to enable the Turing-complete smart contract support
 const HeightEnableSmartContract uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
 
 // HeightSampleStakingReward specifies the block heigth to enable sampling of staking reward

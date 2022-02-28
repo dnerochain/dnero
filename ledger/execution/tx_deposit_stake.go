@@ -31,7 +31,7 @@ func NewDepositStakeExecutor(state *st.LedgerState) *DepositStakeExecutor {
 func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
 	// Feature block height check
 	blockHeight := view.Height() + 1 // the view points to the parent of the current block
-	if _, ok := transaction.(*types.DepositStakeTxV2); ok && blockHeight < common.HeightEnableDneroV1 {
+	if _, ok := transaction.(*types.DepositStakeTxV1); ok && blockHeight < common.HeightEnableDneroV1 {
 		return result.Error("Feature guardian is not active yet")
 	}
 
@@ -88,9 +88,9 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 
 	if tx.Purpose == core.StakeForGuardian {
 		minGuardianStake := core.MinGuardianStakeDeposit
-		if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 {
-			minGuardianStake = core.MinGuardianStakeDeposit1000
-		}
+		//if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 { //StakeDeposit Fork Removed
+			//minGuardianStake = core.MinGuardianStakeDeposit1000
+		//}
 		if stake.DneroWei.Cmp(minGuardianStake) < 0 {
 			return result.Error("Insufficient amount of stake, at least %v DneroWei is required for each guardian deposit", minGuardianStake).
 				WithErrorCode(result.CodeInsufficientStake)
@@ -220,7 +220,7 @@ func (exec *DepositStakeExecutor) process(chainID string, view *st.StoreView, tr
 	return txHash, result.OK
 }
 
-func (exec *DepositStakeExecutor) checkBLSSummary(tx *types.DepositStakeTxV2) result.Result {
+func (exec *DepositStakeExecutor) checkBLSSummary(tx *types.DepositStakeTxV1) result.Result {
 	if tx.BlsPubkey.IsEmpty() {
 		return result.Error("Must provide BLS Pubkey")
 	}
@@ -270,12 +270,12 @@ func (exec *DepositStakeExecutor) calculateEffectiveGasPrice(transaction types.T
 	return effectiveGasPrice
 }
 
-func (exec *DepositStakeExecutor) castTx(transaction types.Tx) *types.DepositStakeTxV2 {
-	if tx, ok := transaction.(*types.DepositStakeTxV2); ok {
+func (exec *DepositStakeExecutor) castTx(transaction types.Tx) *types.DepositStakeTxV1 {
+	if tx, ok := transaction.(*types.DepositStakeTxV1); ok {
 		return tx
 	}
 	if tx, ok := transaction.(*types.DepositStakeTx); ok {
-		return &types.DepositStakeTxV2{
+		return &types.DepositStakeTxV1{
 			Fee:     tx.Fee,
 			Source:  tx.Source,
 			Holder:  tx.Holder,
