@@ -20,11 +20,11 @@ dnerocli tx reserve --chain="privatenet" --from=2E833968E5bB786Ae419c4d13189fB08
 
 ```
       --chain string           Chain ID
-      --collateral string      DFuel amount as collateral (default "0")
+      --collateral string      DToken amount as collateral (default "0")
       --duration uint          Reserve duration (default 1000)
       --fee string             Fee (default "1000000000000wei")
       --from string            Address to send from
-      --fund string            DFuel amount to reserve (default "0")
+      --fund string            DToken amount to reserve (default "0")
   -h, --help                   help for reserve
       --resource_ids strings   Reserouce IDs
       --seq uint               Sequence number of the transaction

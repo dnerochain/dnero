@@ -80,7 +80,7 @@ func TestStoreViewAccountAccess(t *testing.T) {
 	_, pubKey, err := crypto.TEST_GenerateKeyPairWithSeed("account1")
 	assert.Nil(err)
 
-	initCoin := types.Coins{DneroWei: big.NewInt(786), DFuelWei: big.NewInt(0)}
+	initCoin := types.Coins{DneroWei: big.NewInt(786), DTokenWei: big.NewInt(0)}
 	acc1 := &types.Account{
 		Address:  pubKey.Address(),
 		Sequence: 173,
@@ -185,7 +185,7 @@ func TestRevertAndPruneStoreView(t *testing.T) {
 	_, pubKey, err := crypto.TEST_GenerateKeyPairWithSeed("account1")
 	assert.Nil(err)
 
-	initCoin := types.Coins{DneroWei: big.NewInt(786), DFuelWei: big.NewInt(0)}
+	initCoin := types.Coins{DneroWei: big.NewInt(786), DTokenWei: big.NewInt(0)}
 	acc1Addr := pubKey.Address()
 	acc1 := &types.Account{
 		Address:  acc1Addr,

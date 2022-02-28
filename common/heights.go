@@ -1,19 +1,34 @@
 package common
 
-// HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1 feature.
-const HeightEnableDneroV1 uint64 = 101 // TODO MAINNET: start HeightEnableDneroV1 at block #101
+// HeightEnableValidatorReward specifies the minimal block height to enable the validtor DTOKEN reward
+const HeightEnableValidatorReward uint64 = 4164982 // approximate time: 2pm January 14th, 2020 PST
 
-// HeightEnableValidatorReward specifies the minimal block height to enable the Validator DFUEL reward
-const HeightEnableValidatorReward uint64 = 201 // TODO MAINNET: start HeightEnableValidatorReward at block #201
+// HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1.0 feature.
+const HeightEnableDneroV1 uint64 = 5877350 // approximate time: 12pm May 27th, 2020 PDT
 
-// HeightLowerGNStakeThresholdTo100 specifies the minimal block height to lower the GN Stake Threshold to 100 DNERO
-//const HeightLowerGNStakeThresholdTo100 uint64 = ### // block #000 //GN StakeDeposit Fork Removed
+// HeightLowerGNStakeThresholdTo1000 specifies the minimal block height to lower the GN Stake Threshold to 1,000 DNERO
+const HeightLowerGNStakeThresholdTo1000 uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
 
-// HeightEnableSmartContract specifies the minimal block height to enable the Turing-complete smart contract support
-const HeightEnableSmartContract uint64 = 401 // block #401
+// HeightEnableSmartContract specifies the minimal block height to eanble the Turing-complete smart contract support
+const HeightEnableSmartContract uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
 
-// HeightSampleStakingReward specifies the block height to enable sampling of staking reward
-const HeightSampleStakingReward uint64 = 501 // block #501
+// HeightSampleStakingReward specifies the block heigth to enable sampling of staking reward
+const HeightSampleStakingReward uint64 = 9497418 // approximate time: 7pm Mar 10th, 2021 PST
+
+// HeightJune2021FeeAdjustment specifies the block heigth to enable transaction fee burning adjustment
+const HeightJune2021FeeAdjustment uint64 = 10709540 // approximate time: 12pm June 11, 2021 PT
+
+// HeightEnableDneroV2 specifies the minimal block height to enable the DneroV2.0 feature.
+const HeightEnableDneroV2 uint64 = 10968061 // approximate time: 12pm June 30, 2021 PT
+
+// HeightRPCCompatibility specifies the block height to enable Ethereum compatible RPC support
+const HeightRPCCompatibility uint64 = 11354820 // approximate time: 12pm July 30, 2021 PT
+
+// HeightTxWrapperExtension specifies the block height to extend the Tx Wrapper
+const HeightTxWrapperExtension uint64 = 12749952
+
+// HeightSupportDneroTokenInSmartContract specifies the block height to support Dnero in smart contracts
+const HeightSupportDneroTokenInSmartContract uint64 = 13123789 // approximate time: 5pm Dec 4, 2021 PT
 
 // CheckpointInterval defines the interval between checkpoints.
 const CheckpointInterval = int64(100)

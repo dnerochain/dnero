@@ -187,17 +187,17 @@ func TestTx(t *testing.T) {
 	assert.Equal(tx1.(*SplitRuleTx).Splits, tx2.(*SplitRuleTx).Splits)
 	assert.Equal(tx1.(*SplitRuleTx).Duration, tx2.(*SplitRuleTx).Duration)
 
-	tx1 = &DepositStakeTxV1{}
+	tx1 = &DepositStakeTxV2{}
 	b, err = TxToBytes(tx1)
 	require.Nil(err)
 	tx2, err = TxFromBytes(b)
 	assert.Nil(err)
-	tmp, ok := tx2.(*DepositStakeTxV1)
+	tmp, ok := tx2.(*DepositStakeTxV2)
 	assert.True(ok)
 	assert.True(tmp.BlsPop.IsEmpty())
 	assert.True(tmp.BlsPubkey.IsEmpty())
 
-	tmp = &DepositStakeTxV1{}
+	tmp = &DepositStakeTxV2{}
 	blsPrivkey, err := bls.RandKey()
 	assert.Nil(err)
 	tmp.BlsPubkey = blsPrivkey.PublicKey()
@@ -206,7 +206,7 @@ func TestTx(t *testing.T) {
 	require.Nil(err)
 	tx2, err = TxFromBytes(b)
 	assert.Nil(err)
-	tmp2, ok := tx2.(*DepositStakeTxV1)
+	tmp2, ok := tx2.(*DepositStakeTxV2)
 	assert.True(ok)
 	assert.False(tmp2.BlsPop.IsEmpty())
 	assert.False(tmp2.BlsPubkey.IsEmpty())

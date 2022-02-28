@@ -42,13 +42,13 @@ func TestGetInputs(t *testing.T) {
 	et.reset()
 	et.acc2State(et.accIn)
 
-	et.fastforwardBy(1000) // fastforward to reach a sufficient height for DFuel generation
+	et.fastforwardBy(1000) // fastforward to reach a sufficient height for DToken generation
 
 	inputs = types.Accs2TxInputs(1, et.accIn)
 	acc, res = getInputs(et.state().Delivered(), inputs)
 	assert.True(res.IsOK(), "getInputs: expected to get input from a few block heights ago")
-	assert.True(acc[string(inputs[0].Address[:])].Balance.DFuelWei.Cmp(et.accIn.Balance.DFuelWei) == 0,
-		"getInputs: dfuel amount should not change")
+	assert.True(acc[string(inputs[0].Address[:])].Balance.DTokenWei.Cmp(et.accIn.Balance.DTokenWei) == 0,
+		"getInputs: dtoken amount should not change")
 }
 
 func TestGetOrMakeOutputs(t *testing.T) {
@@ -84,7 +84,7 @@ func TestGetOrMakeOutputs(t *testing.T) {
 
 	//test calculating reward
 	et.reset()
-	et.fastforwardBy(1000) // fastforward to reach a sufficient height for DFuel generation
+	et.fastforwardBy(1000) // fastforward to reach a sufficient height for DToken generation
 
 	outputs1 = types.Accs2TxOutputs(et.accIn)
 	outputs2 = types.Accs2TxOutputs(et.accOut)
@@ -92,13 +92,13 @@ func TestGetOrMakeOutputs(t *testing.T) {
 	et.acc2State(et.accIn)
 	mapRes1, res := getOrMakeOutputs(et.state().Delivered(), nil, outputs1)
 	assert.True(res.IsOK(), "getOrMakeOutputs: error when sending to existing account")
-	assert.True(mapRes1[string(outputs1[0].Address[:])].Balance.DFuelWei.Cmp(et.accIn.Balance.DFuelWei) == 0,
-		"getOrMakeOutputs: dfuel amount should not change")
+	assert.True(mapRes1[string(outputs1[0].Address[:])].Balance.DTokenWei.Cmp(et.accIn.Balance.DTokenWei) == 0,
+		"getOrMakeOutputs: dtoken amount should not change")
 
 	mapRes2, res = getOrMakeOutputs(et.state().Delivered(), nil, outputs2)
 	assert.True(res.IsOK(), "getOrMakeOutputs: error when sending to new account")
-	assert.True(mapRes2[string(outputs2[0].Address[:])].Balance.DFuelWei.Cmp(types.Zero) == 0,
-		"getOrMakeOutputs: expected to not update new output account dfuel balance")
+	assert.True(mapRes2[string(outputs2[0].Address[:])].Balance.DTokenWei.Cmp(types.Zero) == 0,
+		"getOrMakeOutputs: expected to not update new output account dtoken balance")
 }
 
 func TestValidateInputsBasic(t *testing.T) {
@@ -134,12 +134,12 @@ func TestValidateInputsAdvanced(t *testing.T) {
 	signBytes := tx.SignBytes(et.chainID)
 
 	//test bad case, unsigned
-	totalCoins, res := validateInputsAdvanced(accMap, signBytes, tx.Inputs)
+	totalCoins, res := validateInputsAdvanced(accMap, signBytes, tx.Inputs, 1)
 	assert.True(res.IsError(), "validateInputsAdvanced: expected an error on an unsigned tx input")
 
 	//test good case sgined
 	et.signSendTx(tx, accIn1, accIn2, accIn3, et.accOut)
-	totalCoins, res = validateInputsAdvanced(accMap, signBytes, tx.Inputs)
+	totalCoins, res = validateInputsAdvanced(accMap, signBytes, tx.Inputs, 1)
 	assert.True(res.IsOK(), "validateInputsAdvanced: expected no error on good tx input. Error: %v", res.Message)
 
 	txTotalCoins := tx.Inputs[0].Coins.
@@ -161,25 +161,25 @@ func TestValidateInputAdvanced(t *testing.T) {
 	signBytes := tx.SignBytes(et.chainID)
 
 	//unsigned case
-	res := validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0])
+	res := validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0], 1)
 	assert.True(res.IsError(), "validateInputAdvanced: expected error on tx input without signature")
 
 	//good signed case
 	et.signSendTx(tx, et.accIn, et.accOut)
-	res = validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0])
+	res = validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0], 1)
 	assert.True(res.IsOK(), "validateInputAdvanced: expected no error on good tx input. Error: %v", res.Message)
 
 	//bad sequence case
 	et.accIn.Sequence = 1
 	et.signSendTx(tx, et.accIn, et.accOut)
-	res = validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0])
+	res = validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0], 1)
 	assert.Equal(result.CodeInvalidSequence, res.Code, "validateInputAdvanced: expected error on tx input with bad sequence")
 	et.accIn.Sequence = 0 //restore sequence
 
 	//bad balance case
 	et.accIn.Balance = types.NewCoins(2, 0)
 	et.signSendTx(tx, et.accIn, et.accOut)
-	res = validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0])
+	res = validateInputAdvanced(&et.accIn.Account, signBytes, tx.Inputs[0], 1)
 	assert.Equal(result.CodeInsufficientFund, res.Code,
 		"validateInputAdvanced: expected error on tx input with insufficient funds %v", et.accIn.Sequence)
 }
@@ -354,15 +354,15 @@ func TestSendDuplicatedInputOutput(t *testing.T) {
 // 	et := NewExecTest()
 
 // 	va1 := et.accProposer
-// 	va1.Balance = types.Coins{DneroWei: big.NewInt(1e11), DFuelWei: big.NewInt(0)}
+// 	va1.Balance = types.Coins{DneroWei: big.NewInt(1e11), DTokenWei: big.NewInt(0)}
 // 	et.acc2State(va1)
 
 // 	va2 := et.accVal2
-// 	va2.Balance = types.Coins{DneroWei: big.NewInt(3e11), DFuelWei: big.NewInt(0)}
+// 	va2.Balance = types.Coins{DneroWei: big.NewInt(3e11), DTokenWei: big.NewInt(0)}
 // 	et.acc2State(va2)
 
 // 	user1 := types.MakeAcc("user 1")
-// 	user1.Balance = types.Coins{DneroWei: big.NewInt(1e11), DFuelWei: big.NewInt(0)}
+// 	user1.Balance = types.Coins{DneroWei: big.NewInt(1e11), DTokenWei: big.NewInt(0)}
 // 	et.acc2State(user1)
 
 // 	et.fastforwardTo(1e7)
@@ -400,7 +400,7 @@ func TestSendDuplicatedInputOutput(t *testing.T) {
 // 	res = et.executor.getTxExecutor(tx).sanityCheck(et.chainID, et.state().Delivered(), tx)
 // 	assert.True(res.IsError(), res.String())
 
-// 	// For the initial Mainnet release, DFuel should not inflate
+// 	// For the initial Mainnet release, DToken should not inflate
 // 	tx = &types.CoinbaseTx{
 // 		Proposer: types.TxInput{
 // 			Address: va1.Address},
@@ -428,7 +428,7 @@ func TestSendDuplicatedInputOutput(t *testing.T) {
 // 	// res = et.executor.getTxExecutor(tx).sanityCheck(et.chainID, et.state().Delivered(), tx)
 // 	// assert.True(res.IsError(), res.String())
 
-// 	// //Error if reward DFuel amount is incorrect
+// 	// //Error if reward DToken amount is incorrect
 // 	// tx = &types.CoinbaseTx{
 // 	// 	Proposer: types.TxInput{
 // 	// 		Address: va1.PubKey.Address(), PubKey: va1.PubKey},
@@ -501,17 +501,17 @@ func TestSendDuplicatedInputOutput(t *testing.T) {
 
 // 	// va1balance := et.state().Delivered().GetAccount(va1.Account.PubKey.Address()).Balance
 // 	// assert.Equal(int64(100000000317), va1balance.DneroWei.Int64())
-// 	// // validator's DFuel is also updated.
-// 	// assert.Equal(int64(189999981000), va1balance.DFuelWei.Int64())
+// 	// // validator's DToken is also updated.
+// 	// assert.Equal(int64(189999981000), va1balance.DTokenWei.Int64())
 
 // 	// va2balance := et.state().Delivered().GetAccount(va2.Account.PubKey.Address()).Balance
 // 	// assert.Equal(int64(300000000951), va2balance.DneroWei.Int64())
-// 	// assert.Equal(int64(569999943000), va2balance.DFuelWei.Int64())
+// 	// assert.Equal(int64(569999943000), va2balance.DTokenWei.Int64())
 
 // 	// user1balance := et.state().Delivered().GetAccount(user1.Account.PubKey.Address()).Balance
 // 	// assert.Equal(int64(100000000000), user1balance.DneroWei.Int64())
-// 	// // user's DFuel is not updated.
-// 	// assert.Equal(int64(0), user1balance.DFuelWei.Int64())
+// 	// // user's DToken is not updated.
+// 	// assert.Equal(int64(0), user1balance.DTokenWei.Int64())
 // }
 
 func TestReserveFundTx(t *testing.T) {
@@ -522,7 +522,7 @@ func TestReserveFundTx(t *testing.T) {
 
 	user1 := types.MakeAcc("user 1")
 	user1.Balance = types.Coins{
-		DFuelWei: big.NewInt(6200 * txFee),
+		DTokenWei: big.NewInt(6200 * txFee),
 		DneroWei: big.NewInt(10000 * 1e6),
 	}
 	et.acc2State(user1)
@@ -539,7 +539,7 @@ func TestReserveFundTx(t *testing.T) {
 			Address:  user1.PrivKey.PublicKey().Address(),
 			Sequence: 1,
 		},
-		Collateral:  types.Coins{DFuelWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)},
+		Collateral:  types.Coins{DTokenWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)},
 		ResourceIDs: []string{"rid001"},
 		Duration:    1000,
 	}
@@ -553,10 +553,10 @@ func TestReserveFundTx(t *testing.T) {
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address:  user1.PrivKey.PublicKey().Address(),
-			Coins:    types.Coins{DFuelWei: big.NewInt(50000 * txFee), DneroWei: big.NewInt(0)},
+			Coins:    types.Coins{DTokenWei: big.NewInt(50000 * txFee), DneroWei: big.NewInt(0)},
 			Sequence: 1,
 		},
-		Collateral:  types.Coins{DFuelWei: big.NewInt(50001 * txFee), DneroWei: big.NewInt(0)},
+		Collateral:  types.Coins{DTokenWei: big.NewInt(50001 * txFee), DneroWei: big.NewInt(0)},
 		ResourceIDs: []string{"rid001"},
 		Duration:    1000,
 	}
@@ -570,10 +570,10 @@ func TestReserveFundTx(t *testing.T) {
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address:  user1.Address,
-			Coins:    types.Coins{DFuelWei: big.NewInt(5000 * txFee), DneroWei: big.NewInt(0)},
+			Coins:    types.Coins{DTokenWei: big.NewInt(5000 * txFee), DneroWei: big.NewInt(0)},
 			Sequence: 1,
 		},
-		Collateral:  types.Coins{DFuelWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)},
+		Collateral:  types.Coins{DTokenWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)},
 		ResourceIDs: []string{"rid001"},
 		Duration:    1000,
 	}
@@ -587,10 +587,10 @@ func TestReserveFundTx(t *testing.T) {
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address:  user1.Address,
-			Coins:    types.Coins{DFuelWei: big.NewInt(1000 * txFee), DneroWei: big.NewInt(0)},
+			Coins:    types.Coins{DTokenWei: big.NewInt(1000 * txFee), DneroWei: big.NewInt(0)},
 			Sequence: 1,
 		},
-		Collateral:  types.Coins{DFuelWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)},
+		Collateral:  types.Coins{DTokenWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)},
 		ResourceIDs: []string{"rid001"},
 		Duration:    1000,
 	}
@@ -603,7 +603,7 @@ func TestReserveFundTx(t *testing.T) {
 	retrievedUserAcc := et.state().Delivered().GetAccount(user1.Address)
 	assert.Equal(1, len(retrievedUserAcc.ReservedFunds))
 	assert.Equal([]string{"rid001"}, retrievedUserAcc.ReservedFunds[0].ResourceIDs)
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)}, retrievedUserAcc.ReservedFunds[0].Collateral)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)}, retrievedUserAcc.ReservedFunds[0].Collateral)
 	assert.Equal(uint64(1), retrievedUserAcc.ReservedFunds[0].ReserveSequence)
 }
 
@@ -613,7 +613,7 @@ func TestReleaseFundTx(t *testing.T) {
 
 	user1 := types.MakeAcc("user 1")
 	user1.Balance = types.Coins{
-		DFuelWei: big.NewInt(50 * getMinimumTxFee()),
+		DTokenWei: big.NewInt(50 * getMinimumTxFee()),
 		DneroWei: big.NewInt(10000 * 1e6),
 	}
 	et.acc2State(user1)
@@ -628,10 +628,10 @@ func TestReleaseFundTx(t *testing.T) {
 		Fee: types.NewCoins(0, getMinimumTxFee()),
 		Source: types.TxInput{
 			Address:  user1.Address,
-			Coins:    types.Coins{DFuelWei: big.NewInt(1000 * 1e6), DneroWei: big.NewInt(0)},
+			Coins:    types.Coins{DTokenWei: big.NewInt(1000 * 1e6), DneroWei: big.NewInt(0)},
 			Sequence: 1,
 		},
-		Collateral:  types.Coins{DFuelWei: big.NewInt(1001 * 1e6), DneroWei: big.NewInt(0)},
+		Collateral:  types.Coins{DTokenWei: big.NewInt(1001 * 1e6), DneroWei: big.NewInt(0)},
 		ResourceIDs: []string{"rid001"},
 		Duration:    1000,
 	}
@@ -730,7 +730,7 @@ func TestServicePaymentTxNormalExecutionAndSlash(t *testing.T) {
 	retrievedAliceAcc0 := et.state().Delivered().GetAccount(alice.Address)
 	assert.Equal(1, len(retrievedAliceAcc0.ReservedFunds))
 	assert.Equal([]string{resourceID}, retrievedAliceAcc0.ReservedFunds[0].ResourceIDs)
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)}, retrievedAliceAcc0.ReservedFunds[0].Collateral)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)}, retrievedAliceAcc0.ReservedFunds[0].Collateral)
 	assert.Equal(uint64(1), retrievedAliceAcc0.ReservedFunds[0].ReserveSequence)
 
 	// Simulate micropayment #1 between Alice and Bob
@@ -749,9 +749,9 @@ func TestServicePaymentTxNormalExecutionAndSlash(t *testing.T) {
 
 	retrievedAliceAcc1 := et.state().Delivered().GetAccount(alice.Address)
 
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(payAmount1), DneroWei: big.NewInt(0)}, retrievedAliceAcc1.ReservedFunds[0].UsedFund)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(payAmount1), DneroWei: big.NewInt(0)}, retrievedAliceAcc1.ReservedFunds[0].UsedFund)
 	retrievedBobAcc1 := et.state().Delivered().GetAccount(bob.Address)
-	assert.Equal(bobInitBalance.Plus(types.Coins{DFuelWei: big.NewInt(payAmount1 - txFee), DneroWei: big.NewInt(0)}), retrievedBobAcc1.Balance) // payAmount1 - txFee: need to account for tx fee
+	assert.Equal(bobInitBalance.Plus(types.Coins{DTokenWei: big.NewInt(payAmount1 - txFee), DneroWei: big.NewInt(0)}), retrievedBobAcc1.Balance) // payAmount1 - txFee: need to account for tx fee
 
 	// Simulate micropayment #2 between Alice and Bob
 	payAmount2 := int64(50 * txFee)
@@ -767,9 +767,9 @@ func TestServicePaymentTxNormalExecutionAndSlash(t *testing.T) {
 	et.state().Commit()
 
 	retrievedAliceAcc2 := et.state().Delivered().GetAccount(alice.Address)
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(payAmount1 + payAmount2), DneroWei: big.NewInt(0)}, retrievedAliceAcc2.ReservedFunds[0].UsedFund)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(payAmount1 + payAmount2), DneroWei: big.NewInt(0)}, retrievedAliceAcc2.ReservedFunds[0].UsedFund)
 	retrievedBobAcc2 := et.state().Delivered().GetAccount(bob.Address)
-	assert.Equal(bobInitBalance.Plus(types.Coins{DFuelWei: big.NewInt(payAmount1 + payAmount2 - 2*txFee)}), retrievedBobAcc2.Balance) // payAmount1 + payAmount2 - 2*txFee: need to account for tx fee
+	assert.Equal(bobInitBalance.Plus(types.Coins{DTokenWei: big.NewInt(payAmount1 + payAmount2 - 2*txFee)}), retrievedBobAcc2.Balance) // payAmount1 + payAmount2 - 2*txFee: need to account for tx fee
 
 	// Simulate micropayment #3 between Alice and Carol
 	payAmount3 := int64(120 * txFee)
@@ -785,9 +785,9 @@ func TestServicePaymentTxNormalExecutionAndSlash(t *testing.T) {
 	et.state().Commit()
 
 	retrievedAliceAcc3 := et.state().Delivered().GetAccount(alice.Address)
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(payAmount1 + payAmount2 + payAmount3), DneroWei: big.NewInt(0)}, retrievedAliceAcc3.ReservedFunds[0].UsedFund)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(payAmount1 + payAmount2 + payAmount3), DneroWei: big.NewInt(0)}, retrievedAliceAcc3.ReservedFunds[0].UsedFund)
 	retrievedCarolAcc3 := et.state().Delivered().GetAccount(carol.Address)
-	assert.Equal(carolInitBalance.Plus(types.Coins{DFuelWei: big.NewInt(payAmount3 - txFee)}), retrievedCarolAcc3.Balance) // payAmount3 - txFee: need to account for tx fee
+	assert.Equal(carolInitBalance.Plus(types.Coins{DTokenWei: big.NewInt(payAmount3 - txFee)}), retrievedCarolAcc3.Balance) // payAmount3 - txFee: need to account for tx fee
 
 	// Simulate micropayment #4 between Alice and Carol. This is an overspend, alice should get slashed.
 	payAmount4 := int64(2000 * txFee)
@@ -813,7 +813,7 @@ func TestServicePaymentTxExpiration(t *testing.T) {
 	retrievedAliceAcc1 := et.state().Delivered().GetAccount(alice.Address)
 	assert.Equal(1, len(retrievedAliceAcc1.ReservedFunds))
 	assert.Equal([]string{resourceID}, retrievedAliceAcc1.ReservedFunds[0].ResourceIDs)
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)}, retrievedAliceAcc1.ReservedFunds[0].Collateral)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(1001 * txFee), DneroWei: big.NewInt(0)}, retrievedAliceAcc1.ReservedFunds[0].Collateral)
 	assert.Equal(uint64(1), retrievedAliceAcc1.ReservedFunds[0].ReserveSequence)
 
 	// Simulate micropayment #1 between Alice and Bobs
@@ -830,9 +830,9 @@ func TestServicePaymentTxExpiration(t *testing.T) {
 	et.state().Commit()
 
 	retrievedAliceAcc2 := et.state().Delivered().GetAccount(alice.Address)
-	assert.Equal(types.Coins{DFuelWei: big.NewInt(payAmount1), DneroWei: big.NewInt(0)}, retrievedAliceAcc2.ReservedFunds[0].UsedFund)
+	assert.Equal(types.Coins{DTokenWei: big.NewInt(payAmount1), DneroWei: big.NewInt(0)}, retrievedAliceAcc2.ReservedFunds[0].UsedFund)
 	retrievedBobAcc2 := et.state().Delivered().GetAccount(bob.Address)
-	assert.Equal(bobInitBalance.Plus(types.Coins{DFuelWei: big.NewInt(payAmount1 - txFee)}), retrievedBobAcc2.Balance) // payAmount1 - txFee: need to account for Gas
+	assert.Equal(bobInitBalance.Plus(types.Coins{DTokenWei: big.NewInt(payAmount1 - txFee)}), retrievedBobAcc2.Balance) // payAmount1 - txFee: need to account for Gas
 
 	et.fastforwardBy(1e4) // The reservedFund should expire after the fastforward
 
@@ -923,7 +923,7 @@ func TestSplitRuleTxNormalExecution(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitCarol := types.Split{
@@ -969,9 +969,9 @@ func TestSplitRuleTxNormalExecution(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 70 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 70 / 100), DneroWei: big.NewInt(0)}
 	servicePaymentTxFee := types.NewCoins(0, txFee)
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 30 / 100), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 30 / 100), DneroWei: big.NewInt(0)}
 	assert.Equal(bobInitBalance.Plus(bobSplitCoins).Minus(servicePaymentTxFee), bobFinalBalance)
 	assert.Equal(carolInitBalance.Plus(carolSplitCoins), carolFinalBalance)
 }
@@ -985,7 +985,7 @@ func TestSplitRuleTxExpiration(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitCarol := types.Split{
@@ -1033,7 +1033,7 @@ func TestSplitRuleTxExpiration(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)}
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 	assert.Equal(bobInitBalance.Plus(bobSplitCoins).Minus(servicePaymentTxFee), bobFinalBalance)
 	assert.Equal(carolInitBalance, carolFinalBalance) // Carol gets no cut since the split rule has expired
@@ -1047,11 +1047,11 @@ func TestSplitRuleTxUpdate(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	fakeInitiator := types.MakeAcc("User Eric")
-	fakeInitiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	fakeInitiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(fakeInitiator)
 
 	splitCarol := types.Split{
@@ -1157,7 +1157,7 @@ func TestSplitPaymentInternalMethod(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitRule := &types.SplitRule{
@@ -1190,7 +1190,7 @@ func TestSplitRuleTxTargetAddressAlsoSplits(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1247,10 +1247,10 @@ func TestSplitRuleTxTargetAddressAlsoSplits(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 85 / 100), DneroWei: big.NewInt(0)}
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 85 / 100), DneroWei: big.NewInt(0)}
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1274,7 +1274,7 @@ func TestSplitRuleTxManyDups(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1341,10 +1341,10 @@ func TestSplitRuleTxManyDups(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
 	carolSplitCoins := types.NewCoins(0, payAmount).Minus(aliceSplitCoins).Minus(bobSplitCoins)
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1369,7 +1369,7 @@ func TestSplitRuleTxSmallAmount(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1430,10 +1430,10 @@ func TestSplitRuleTxSmallAmount(t *testing.T) {
 	carolFinalBalance := et.state().Delivered().GetAccount(carol.Address).Balance
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
 	carolSplitCoins := types.NewCoins(0, payAmount).Minus(aliceSplitCoins).Minus(bobSplitCoins)
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1462,7 +1462,7 @@ func TestSplitRuleTxSmallPercentage(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1540,11 +1540,11 @@ func TestSplitRuleTxSmallPercentage(t *testing.T) {
 	}
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
-	smallSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 85 / 100), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 5 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 10 / 100), DneroWei: big.NewInt(0)}
+	smallSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 85 / 100), DneroWei: big.NewInt(0)}
 	carolSplitCoins := types.NewCoins(0, payAmount).Minus(aliceSplitCoins).Minus(bobSplitCoins).Minus(smallSplitCoins)
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1573,7 +1573,7 @@ func TestSplitRuleHundredPercSplits(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	// 100% of the payment are split, 0% left for the target account
@@ -1628,10 +1628,10 @@ func TestSplitRuleHundredPercSplits(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 70 / 100), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 30 / 100), DneroWei: big.NewInt(0)}
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)} // Carol should get nothing
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 70 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 30 / 100), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)} // Carol should get nothing
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1655,7 +1655,7 @@ func TestSplitRuleOverHundredPercSplits(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1694,7 +1694,7 @@ func TestSplitRuleSingleHundredPercSplits(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	// 100% of the payment are split, 0% left for the target account
@@ -1745,9 +1745,9 @@ func TestSplitRuleSingleHundredPercSplits(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 100 / 100), DneroWei: big.NewInt(0)}
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)} // Carol should get nothing
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 100 / 100), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)} // Carol should get nothing
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1770,7 +1770,7 @@ func TestSplitRuleSplitZeroPercSplits(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1825,10 +1825,10 @@ func TestSplitRuleSplitZeroPercSplits(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)}
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)} // Carol should get 100%
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)} // Carol should get 100%
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1852,7 +1852,7 @@ func TestSplitRuleSplitEmptyRule(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitRuleTx := &types.SplitRuleTx{
@@ -1897,10 +1897,10 @@ func TestSplitRuleSplitEmptyRule(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)}
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)} // Carol should get 100%
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)} // Carol should get 100%
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -1924,7 +1924,7 @@ func TestSplitRuleSplitZeroPayment(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -1979,10 +1979,10 @@ func TestSplitRuleSplitZeroPayment(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)} // zero payment
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)}   // zero payment
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(0), DneroWei: big.NewInt(0)} // zero payment
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)} // zero payment
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)}   // zero payment
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(0), DneroWei: big.NewInt(0)} // zero payment
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -2005,7 +2005,7 @@ func TestSplitRuleTxSplitPaymentRounding(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -2062,16 +2062,16 @@ func TestSplitRuleTxSplitPaymentRounding(t *testing.T) {
 	log.Infof("Carol's final balance: %v", carolFinalBalance)
 
 	// Check the balances of the relevant accounts
-	aliceSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 27 / 100), DneroWei: big.NewInt(0)}
-	bobSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount * 19 / 100), DneroWei: big.NewInt(0)}
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount - payAmount*27/100 - payAmount*19/100), DneroWei: big.NewInt(0)}
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	aliceSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 27 / 100), DneroWei: big.NewInt(0)}
+	bobSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount * 19 / 100), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount - payAmount*27/100 - payAmount*19/100), DneroWei: big.NewInt(0)}
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
-	log.Infof("Payment amount: %v DFuelWei", payAmount)
-	log.Infof("Alice's split : %v DFuelWei", aliceSplitCoins.DFuelWei)
-	log.Infof("Bob's   split : %v DFuelWei", bobSplitCoins.DFuelWei)
-	log.Infof("Carol's split : %v DFuelWei", carolSplitCoins.DFuelWei)
+	log.Infof("Payment amount: %v DTokenWei", payAmount)
+	log.Infof("Alice's split : %v DTokenWei", aliceSplitCoins.DTokenWei)
+	log.Infof("Bob's   split : %v DTokenWei", bobSplitCoins.DTokenWei)
+	log.Infof("Carol's split : %v DTokenWei", carolSplitCoins.DTokenWei)
 
 	assert.Equal(aliceInitBalance.Minus(aliceReservedFund).Minus(reserveFundTxFee).Plus(aliceSplitCoins), aliceFinalBalance)
 	assert.Equal(bobInitBalance.Plus(bobSplitCoins), bobFinalBalance)
@@ -2093,7 +2093,7 @@ func TestSplitRuleExpiration(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{
@@ -2166,8 +2166,8 @@ func TestSplitRuleExpiration(t *testing.T) {
 	// Check the balances of the relevant accounts
 	aliceSplitCoins := types.Coins{}.NoNil()                                                 // Alice should get ZERO split since the split rule has expired
 	bobSplitCoins := types.Coins{}.NoNil()                                                   // Bob should get ZERO split since the split rule has expired
-	carolSplitCoins := types.Coins{DFuelWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)} // Carol should get the full payment since the split rule has expired
-	aliceReservedFund := types.Coins{DFuelWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
+	carolSplitCoins := types.Coins{DTokenWei: big.NewInt(payAmount), DneroWei: big.NewInt(0)} // Carol should get the full payment since the split rule has expired
+	aliceReservedFund := types.Coins{DTokenWei: big.NewInt(2001 * txFee), DneroWei: big.NewInt(0)}
 	reserveFundTxFee := types.NewCoins(0, getMinimumTxFee())
 	servicePaymentTxFee := types.NewCoins(0, txFee)
 
@@ -2191,7 +2191,7 @@ func TestSplitRuleZeroDuration(t *testing.T) {
 	txFee := getMinimumTxFee()
 
 	initiator := types.MakeAcc("User David")
-	initiator.Balance = types.Coins{DFuelWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
+	initiator.Balance = types.Coins{DTokenWei: big.NewInt(10000 * txFee), DneroWei: big.NewInt(0)}
 	et.acc2State(initiator)
 
 	splitAlice := types.Split{

@@ -21,25 +21,25 @@ func init() {
 
 type Coins struct {
 	DneroWei *big.Int
-	DFuelWei *big.Int
+	DTokenWei *big.Int
 }
 
 type CoinsJSON struct {
 	DneroWei *common.JSONBig `json:"dnerowei"`
-	DFuelWei *common.JSONBig `json:"dfuelwei"`
+	DTokenWei *common.JSONBig `json:"dtokenwei"`
 }
 
 func NewCoinsJSON(coin Coins) CoinsJSON {
 	return CoinsJSON{
 		DneroWei: (*common.JSONBig)(coin.DneroWei),
-		DFuelWei: (*common.JSONBig)(coin.DFuelWei),
+		DTokenWei: (*common.JSONBig)(coin.DTokenWei),
 	}
 }
 
 func (c CoinsJSON) Coins() Coins {
 	return Coins{
 		DneroWei: (*big.Int)(c.DneroWei),
-		DFuelWei: (*big.Int)(c.DFuelWei),
+		DTokenWei: (*big.Int)(c.DTokenWei),
 	}
 }
 
@@ -57,15 +57,15 @@ func (c *Coins) UnmarshalJSON(data []byte) error {
 }
 
 // NewCoins is a convenient method for creating small amount of coins.
-func NewCoins(dnero int64, dfuel int64) Coins {
+func NewCoins(dnero int64, dtoken int64) Coins {
 	return Coins{
 		DneroWei: big.NewInt(dnero),
-		DFuelWei: big.NewInt(dfuel),
+		DTokenWei: big.NewInt(dtoken),
 	}
 }
 
 func (coins Coins) String() string {
-	return fmt.Sprintf("%v %v, %v %v", coins.DneroWei, DenomDneroWei, coins.DFuelWei, DenomDFuelWei)
+	return fmt.Sprintf("%v %v, %v %v", coins.DneroWei, DenomDneroWei, coins.DTokenWei, DenomDTokenWei)
 }
 
 func (coins Coins) IsValid() bool {
@@ -77,14 +77,14 @@ func (coins Coins) NoNil() Coins {
 	if dnero == nil {
 		dnero = big.NewInt(0)
 	}
-	dfuel := coins.DFuelWei
-	if dfuel == nil {
-		dfuel = big.NewInt(0)
+	dtoken := coins.DTokenWei
+	if dtoken == nil {
+		dtoken = big.NewInt(0)
 	}
 
 	return Coins{
 		DneroWei: dnero,
-		DFuelWei: dfuel,
+		DTokenWei: dtoken,
 	}
 }
 
@@ -98,13 +98,13 @@ func (coins Coins) CalculatePercentage(percentage uint) Coins {
 	dnero.Mul(c.DneroWei, p)
 	dnero.Div(dnero, Hundred)
 
-	dfuel := new(big.Int)
-	dfuel.Mul(c.DFuelWei, p)
-	dfuel.Div(dfuel, Hundred)
+	dtoken := new(big.Int)
+	dtoken.Mul(c.DTokenWei, p)
+	dtoken.Div(dtoken, Hundred)
 
 	return Coins{
 		DneroWei: dnero,
-		DFuelWei: dfuel,
+		DTokenWei: dtoken,
 	}
 }
 
@@ -116,12 +116,12 @@ func (coinsA Coins) Plus(coinsB Coins) Coins {
 	dnero := new(big.Int)
 	dnero.Add(cA.DneroWei, cB.DneroWei)
 
-	dfuel := new(big.Int)
-	dfuel.Add(cA.DFuelWei, cB.DFuelWei)
+	dtoken := new(big.Int)
+	dtoken.Add(cA.DTokenWei, cB.DTokenWei)
 
 	return Coins{
 		DneroWei: dnero,
-		DFuelWei: dfuel,
+		DTokenWei: dtoken,
 	}
 }
 
@@ -131,12 +131,12 @@ func (coins Coins) Negative() Coins {
 	dnero := new(big.Int)
 	dnero.Neg(c.DneroWei)
 
-	dfuel := new(big.Int)
-	dfuel.Neg(c.DFuelWei)
+	dtoken := new(big.Int)
+	dtoken.Neg(c.DTokenWei)
 
 	return Coins{
 		DneroWei: dnero,
-		DFuelWei: dfuel,
+		DTokenWei: dtoken,
 	}
 }
 
@@ -151,24 +151,24 @@ func (coinsA Coins) IsGTE(coinsB Coins) bool {
 
 func (coins Coins) IsZero() bool {
 	c := coins.NoNil()
-	return c.DneroWei.Cmp(Zero) == 0 && c.DFuelWei.Cmp(Zero) == 0
+	return c.DneroWei.Cmp(Zero) == 0 && c.DTokenWei.Cmp(Zero) == 0
 }
 
 func (coinsA Coins) IsEqual(coinsB Coins) bool {
 	cA := coinsA.NoNil()
 	cB := coinsB.NoNil()
-	return cA.DneroWei.Cmp(cB.DneroWei) == 0 && cA.DFuelWei.Cmp(cB.DFuelWei) == 0
+	return cA.DneroWei.Cmp(cB.DneroWei) == 0 && cA.DTokenWei.Cmp(cB.DTokenWei) == 0
 }
 
 func (coins Coins) IsPositive() bool {
 	c := coins.NoNil()
-	return (c.DneroWei.Cmp(Zero) > 0 && c.DFuelWei.Cmp(Zero) >= 0) ||
-		(c.DneroWei.Cmp(Zero) >= 0 && c.DFuelWei.Cmp(Zero) > 0)
+	return (c.DneroWei.Cmp(Zero) > 0 && c.DTokenWei.Cmp(Zero) >= 0) ||
+		(c.DneroWei.Cmp(Zero) >= 0 && c.DTokenWei.Cmp(Zero) > 0)
 }
 
 func (coins Coins) IsNonnegative() bool {
 	c := coins.NoNil()
-	return c.DneroWei.Cmp(Zero) >= 0 && c.DFuelWei.Cmp(Zero) >= 0
+	return c.DneroWei.Cmp(Zero) >= 0 && c.DTokenWei.Cmp(Zero) >= 0
 }
 
 // ParseCoinAmount parses a string representation of coin amount.

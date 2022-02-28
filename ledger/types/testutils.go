@@ -59,7 +59,7 @@ func RandAccounts(num int, minAmount int64, maxAmount int64) []PrivAccount {
 			PrivKey: privKey,
 			Account: Account{
 				Address:                pubKey.Address(),
-				Balance:                Coins{DFuelWei: big.NewInt(balance), DneroWei: big.NewInt(balance)},
+				Balance:                Coins{DTokenWei: big.NewInt(balance), DneroWei: big.NewInt(balance)},
 				LastUpdatedBlockHeight: 1,
 			},
 		}
@@ -86,7 +86,7 @@ func Accs2TxInputs(seq int, accs ...PrivAccount) []TxInput {
 	for _, acc := range accs {
 		tx := NewTxInput(
 			acc.Account.Address,
-			NewCoins(4, int64(MinimumTransactionFeeDFuelWei)),
+			NewCoins(4, int64(MinimumTransactionFeeDTokenWeiJune2021)),
 			seq)
 		txs = append(txs, tx)
 	}
@@ -108,7 +108,7 @@ func Accs2TxOutputs(accs ...PrivAccount) []TxOutput {
 
 func MakeSendTx(seq int, accOut PrivAccount, accsIn ...PrivAccount) *SendTx {
 	tx := &SendTx{
-		Fee:     NewCoins(0, int64(MinimumTransactionFeeDFuelWei)),
+		Fee:     NewCoins(0, int64(MinimumTransactionFeeDTokenWeiJune2021)),
 		Inputs:  Accs2TxInputs(seq, accsIn...),
 		Outputs: Accs2TxOutputs(accOut),
 	}

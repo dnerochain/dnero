@@ -30,7 +30,7 @@ var setPeersSuffix string = "/peers/set"
 var peerUrl string
 var rpcJSON = []byte(`{"jsonrpc": "2.0", "method": "dnero.GetStatus", "params": [{}], "id": 0}`)
 
-const sleepTime time.Duration = time.Second * 60
+const sleepTime time.Duration = time.Second * 60 * 10
 
 type Reporter struct {
 	init   bool
@@ -52,11 +52,10 @@ type Reporter struct {
 
 // NewReporter instantiates a reporter instance
 func NewReporter(disp *dp.Dispatcher, consensus *consensus.ConsensusEngine, chain *blockchain.Chain) *Reporter {
-	//peerUrl = "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix //TODO: Metrics Disabled For Now
-	peerUrl = "http://" + reportPeersPort + setPeersSuffix 
+	peerUrl = "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix
 	ipAddr, err := util.GetPublicIP()
 	if err != nil {
-		logger.Errorf("Reporter failed to retrieve the node's IP address: %v", err)
+		logger.Warnf("Reporter failed to retrieve the node's IP address: %v", err)
 	}
 	var ok bool = true
 	if mserver := viper.GetString(common.CfgMetricsServer); mserver != "" {
@@ -123,21 +122,20 @@ func (rp *Reporter) statusToString() string {
 }
 
 func (rp *Reporter) handlePeers() {
-	//url := "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix //TODO: Metrics Disabled For Now
-	url := "http://" + reportPeersPort + setPeersSuffix
+	url := "http://" + viper.GetString(common.CfgMetricsServer) + reportPeersPort + setPeersSuffix
 	jsonStr := fmt.Sprintf("{\"id\":\"%s\", \"ip\": \"%s\", \"peers\" : [%s], %s}",
 		rp.id, rp.ipAddr, rp.peersToString(), rp.statusToString())
 	data := []byte(jsonStr)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
-		logger.Errorf("Reporter failed to create request: %v", err)
+		logger.Warnf("Reporter failed to create request: %v", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Errorf("Reporter failed to create request: %v", err)
+		logger.Warnf("Reporter failed to create request: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -148,7 +146,7 @@ func (rp *Reporter) handlePeers() {
 }
 
 func (rp *Reporter) peersToString() string {
-	p := rp.disp.Peers()
+	p := rp.disp.Peers(true) // skip edge nodes
 	var sb strings.Builder
 	for i, peer := range p {
 		if i > 0 {
@@ -165,8 +163,7 @@ func (rp *Reporter) peersToString() string {
 
 func isSyncing(block *core.ExtendedBlock) bool {
 	currentTime := big.NewInt(time.Now().Unix())
-	//maxDiff := new(big.Int).SetUint64(30) // thirty seconds, about 5 blocks
-	maxDiff := new(big.Int).SetUint64(300) // Dnero Max Diff set to 5 Min ~5 blocks with 60s/block
+	maxDiff := new(big.Int).SetUint64(30) // thirty seconds, about 5 blocks
 	threshold := new(big.Int).Sub(currentTime, maxDiff)
 	isSyncing := block.Timestamp.Cmp(threshold) < 0
 	return isSyncing

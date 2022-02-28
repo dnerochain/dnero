@@ -82,7 +82,7 @@ func TestLedgerStateAccountCommit(t *testing.T) {
 	// Account and Commit
 	_, acc1PubKey, err := crypto.TEST_GenerateKeyPairWithSeed("account1")
 	assert.Nil(err)
-	initCoin := types.Coins{DneroWei: big.NewInt(956), DFuelWei: big.NewInt(0)}
+	initCoin := types.Coins{DneroWei: big.NewInt(956), DTokenWei: big.NewInt(0)}
 	acc1 := &types.Account{
 		Address:  acc1PubKey.Address(),
 		Sequence: 657,

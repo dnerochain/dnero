@@ -28,4 +28,5 @@ var (
 	ErrContractAddressCollision = errors.New("contract address collision")
 	ErrNoCompatibleInterpreter  = errors.New("no compatible interpreter")
 	ErrInvalidGasLimit          = errors.New("invalid gas limit")
+	ErrInsufficientDneroBlance  = errors.New("insufficient Dnero balance for transfer")
 )

@@ -1,11 +1,19 @@
 package types
 
+import (
+	"math/big"
+
+	"github.com/dnerochain/dnero/common"
+)
+
 const (
 	// DenomDneroWei is the basic unit of dnero, 1 Dnero = 10^18 DneroWei
 	DenomDneroWei string = "DneroWei"
 
-	// DenomDFuelWei is the basic unit of dnero, 1 Dnero = 10^18 DneroWei
-	DenomDFuelWei string = "DFuelWei"
+	// DenomDTokenWei is the basic unit of dnero, 1 Dnero = 10^18 DneroWei
+	DenomDTokenWei string = "DTokenWei"
+
+	// Initial gas parameters
 
 	// MinimumGasPrice is the minimum gas price for a smart contract transaction
 	MinimumGasPrice uint64 = 1e8
@@ -14,8 +22,19 @@ const (
 	//MaximumTxGasLimit uint64 = 2e6
 	MaximumTxGasLimit uint64 = 10e6
 
-	// MinimumTransactionFeeDFuelWei specifies the minimum fee for a regular transaction
-	MinimumTransactionFeeDFuelWei uint64 = 1e12
+	// MinimumTransactionFeeDTokenWei specifies the minimum fee for a regular transaction
+	MinimumTransactionFeeDTokenWei uint64 = 1e12
+
+	// June 2021 gas burn adjustment
+
+	// MinimumGasPrice is the minimum gas price for a smart contract transaction
+	MinimumGasPriceJune2021 uint64 = 4e12
+
+	// MaximumTxGasLimit is the maximum gas limit for a smart contract transaction
+	MaximumTxGasLimitJune2021 uint64 = 20e6
+
+	// MinimumTransactionFeeDTokenWei specifies the minimum fee for a regular transaction
+	MinimumTransactionFeeDTokenWeiJune2021 uint64 = 3e17
 
 	// MaxAccountsAffectedPerTx specifies the max number of accounts one transaction is allowed to modify to avoid spamming
 	MaxAccountsAffectedPerTx = 512
@@ -31,22 +50,22 @@ const (
 	// generated per existing DneroWei per new block
 	ValidatorDneroGenerationRateDenominator int64 = 1e11
 
-	// ValidatorDFuelGenerationRateNumerator is used for calculating the generation rate of DFuel for validators
-	ValidatorDFuelGenerationRateNumerator int64 = 0 // ZERO initial inflation for DFuel
+	// ValidatorDTokenGenerationRateNumerator is used for calculating the generation rate of DToken for validators
+	ValidatorDTokenGenerationRateNumerator int64 = 0 // ZERO initial inflation for DToken
 
-	// ValidatorDFuelGenerationRateDenominator is used for calculating the generation rate of DFuel for validators
-	// ValidatorDFuelGenerationRateNumerator / ValidatorDFuelGenerationRateDenominator is the amount of DFuelWei
+	// ValidatorDTokenGenerationRateDenominator is used for calculating the generation rate of DToken for validators
+	// ValidatorDTokenGenerationRateNumerator / ValidatorDTokenGenerationRateDenominator is the amount of DTokenWei
 	// generated per existing DneroWei per new block
-	ValidatorDFuelGenerationRateDenominator int64 = 1e9
+	ValidatorDTokenGenerationRateDenominator int64 = 1e9
 
-	// RegularDFuelGenerationRateNumerator is used for calculating the generation rate of DFuel for other types of accounts
-	//RegularDFuelGenerationRateNumerator int64 = 1900
-	RegularDFuelGenerationRateNumerator int64 = 0 // ZERO initial inflation for DFuel
+	// RegularDTokenGenerationRateNumerator is used for calculating the generation rate of DToken for other types of accounts
+	//RegularDTokenGenerationRateNumerator int64 = 1900
+	RegularDTokenGenerationRateNumerator int64 = 0 // ZERO initial inflation for DToken
 
-	// RegularDFuelGenerationRateDenominator is used for calculating the generation rate of DFuel for other types of accounts
-	// RegularDFuelGenerationRateNumerator / RegularDFuelGenerationRateDenominator is the amount of DFuelWei
+	// RegularDTokenGenerationRateDenominator is used for calculating the generation rate of DToken for other types of accounts
+	// RegularDTokenGenerationRateNumerator / RegularDTokenGenerationRateDenominator is the amount of DTokenWei
 	// generated per existing DneroWei per new block
-	RegularDFuelGenerationRateDenominator int64 = 1e10
+	RegularDTokenGenerationRateDenominator int64 = 1e10
 )
 
 const (
@@ -72,3 +91,44 @@ const (
 	// ReservedFundFreezePeriodDuration indicates the freeze duration (in terms of number of blocks) of the reserved fund
 	ReservedFundFreezePeriodDuration uint64 = 5
 )
+
+func GetMinimumGasPrice(blockHeight uint64) *big.Int {
+	if blockHeight < common.HeightJune2021FeeAdjustment {
+		return new(big.Int).SetUint64(MinimumGasPrice)
+	}
+
+	return new(big.Int).SetUint64(MinimumGasPriceJune2021)
+}
+
+func GetMaxGasLimit(blockHeight uint64) *big.Int {
+	if blockHeight < common.HeightJune2021FeeAdjustment {
+		return new(big.Int).SetUint64(MaximumTxGasLimit)
+	}
+
+	return new(big.Int).SetUint64(MaximumTxGasLimitJune2021)
+}
+
+func GetMinimumTransactionFeeDTokenWei(blockHeight uint64) *big.Int {
+	if blockHeight < common.HeightJune2021FeeAdjustment {
+		return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWei)
+	}
+
+	return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWeiJune2021)
+}
+
+// Special handling for many-to-many SendTx
+func GetSendTxMinimumTransactionFeeDTokenWei(numAccountsAffected uint64, blockHeight uint64) *big.Int {
+	if blockHeight < common.HeightJune2021FeeAdjustment {
+		return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWei) // backward compatiblity
+	}
+
+	if numAccountsAffected < 2 {
+		numAccountsAffected = 2
+	}
+
+	// minSendTxFee = numAccountsAffected * MinimumTransactionFeeDTokenWeiJune2021 / 2
+	minSendTxFee := big.NewInt(1).Mul(new(big.Int).SetUint64(numAccountsAffected), new(big.Int).SetUint64(MinimumTransactionFeeDTokenWeiJune2021))
+	minSendTxFee = big.NewInt(1).Div(minSendTxFee, new(big.Int).SetUint64(2))
+
+	return minSendTxFee
+}

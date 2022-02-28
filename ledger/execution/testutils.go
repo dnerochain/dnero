@@ -109,7 +109,7 @@ func (et *execTest) reset() {
 		},
 	}
 	db := backend.NewMemDatabase()
-	ledgerState := st.NewLedgerState(chainID, db)
+	ledgerState := st.NewLedgerState(chainID, db, nil)
 	//ledgerState.ResetState(initHeight, initRootHash)
 	ledgerState.ResetState(initBlock)
 
@@ -209,7 +209,7 @@ func (et *execTest) SetAcc(accs ...types.PrivAccount) {
 }
 
 func getMinimumTxFee() int64 {
-	return int64(types.MinimumTransactionFeeDFuelWei)
+	return int64(types.MinimumTransactionFeeDTokenWeiJune2021)
 }
 
 func createServicePaymentTx(chainID string, source, target *types.PrivAccount, amount int64, srcSeq, tgtSeq, paymentSeq, reserveSeq int, resourceID string) *types.ServicePaymentTx {
@@ -217,7 +217,7 @@ func createServicePaymentTx(chainID string, source, target *types.PrivAccount, a
 		Fee: types.NewCoins(0, getMinimumTxFee()),
 		Source: types.TxInput{
 			Address:  source.Address,
-			Coins:    types.Coins{DFuelWei: big.NewInt(amount), DneroWei: big.NewInt(0)},
+			Coins:    types.Coins{DTokenWei: big.NewInt(amount), DneroWei: big.NewInt(0)},
 			Sequence: uint64(srcSeq),
 		},
 		Target: types.TxInput{
@@ -250,19 +250,19 @@ func setupForServicePayment(ast *assert.Assertions) (et *execTest, resourceID st
 	et = NewExecTest()
 
 	alice = types.MakeAcc("User Alice")
-	aliceInitBalance = types.Coins{DFuelWei: big.NewInt(10000 * getMinimumTxFee()), DneroWei: big.NewInt(0)}
+	aliceInitBalance = types.Coins{DTokenWei: big.NewInt(10000 * getMinimumTxFee()), DneroWei: big.NewInt(0)}
 	alice.Balance = aliceInitBalance
 	et.acc2State(alice)
 	log.Infof("Alice's Address: %v", alice.Address.Hex())
 
 	bob = types.MakeAcc("User Bob")
-	bobInitBalance = types.Coins{DFuelWei: big.NewInt(3000 * getMinimumTxFee()), DneroWei: big.NewInt(0)}
+	bobInitBalance = types.Coins{DTokenWei: big.NewInt(3000 * getMinimumTxFee()), DneroWei: big.NewInt(0)}
 	bob.Balance = bobInitBalance
 	et.acc2State(bob)
 	log.Infof("Bob's Address: %v", bob.Address.Hex())
 
 	carol = types.MakeAcc("User Carol")
-	carolInitBalance = types.Coins{DFuelWei: big.NewInt(3000 * getMinimumTxFee()), DneroWei: big.NewInt(0)}
+	carolInitBalance = types.Coins{DTokenWei: big.NewInt(3000 * getMinimumTxFee()), DneroWei: big.NewInt(0)}
 	carol.Balance = carolInitBalance
 	et.acc2State(carol)
 	log.Infof("Carol's Address: %v", carol.Address.Hex())
@@ -274,10 +274,10 @@ func setupForServicePayment(ast *assert.Assertions) (et *execTest, resourceID st
 		Fee: types.NewCoins(0, getMinimumTxFee()),
 		Source: types.TxInput{
 			Address:  alice.Address,
-			Coins:    types.Coins{DFuelWei: big.NewInt(1000 * getMinimumTxFee()), DneroWei: big.NewInt(0)},
+			Coins:    types.Coins{DTokenWei: big.NewInt(1000 * getMinimumTxFee()), DneroWei: big.NewInt(0)},
 			Sequence: 1,
 		},
-		Collateral:  types.Coins{DFuelWei: big.NewInt(1001 * getMinimumTxFee()), DneroWei: big.NewInt(0)},
+		Collateral:  types.Coins{DTokenWei: big.NewInt(1001 * getMinimumTxFee()), DneroWei: big.NewInt(0)},
 		ResourceIDs: []string{resourceID},
 		Duration:    1000,
 	}
@@ -328,7 +328,11 @@ func setupForSmartContract(ast *assert.Assertions, numAccounts int) (et *execTes
 
 	for i := 0; i < numAccounts; i++ {
 		secret := "acc_secret_" + strconv.FormatInt(int64(i), 16)
-		privAccount := types.MakeAccWithInitBalance(secret, types.NewCoins(0, int64(9000000*types.MinimumGasPrice)))
+		privAccount := types.MakeAccWithInitBalance(secret,
+			types.Coins{
+				big.NewInt(0),
+				big.NewInt(1).Mul(big.NewInt(9000000), big.NewInt(int64(types.MinimumGasPriceJune2021))),
+			})
 		privAccounts = append(privAccounts, privAccount)
 		et.acc2State(privAccount)
 	}

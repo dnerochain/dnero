@@ -271,10 +271,10 @@ func TestVMExecutionDeployComplexContract(t *testing.T) {
 	log.Infof("Call   Contract -- retrievedTokenAddr: %v", retrievedTokenAddr)
 }
 
-// The test case below is based on the production Dnero ALLOCATION Token smart contract deployed on the Ethereum blockchain
+// The test case below is based on the production Dnero ERC20 Token smart contract deployed on the Ethereum blockchain
 // https://etherscan.io/tx/0x078358d68d132458fc964cfb19011f8e561da5c4ebb6e47b27032813d684861b
-// The deplyment_code hex string in testdata/allocation_token.json is the "Input Data" of the above transaction
-func TestVMExecutionDeployALLOCATIONTokenContract(t *testing.T) {
+// The deplyment_code hex string in testdata/erc20_token.json is the "Input Data" of the above transaction
+func TestVMExecutionDeployERC20TokenContract(t *testing.T) {
 	assert := assert.New(t)
 
 	storeView := state.NewStoreView(0, common.Hash{}, backend.NewMemDatabase())
@@ -283,7 +283,7 @@ func TestVMExecutionDeployALLOCATIONTokenContract(t *testing.T) {
 	callerAcc := privAccounts[1].Account
 
 	var cbc contractByteCode
-	err := loadJSONTest("testdata/allocation_token.json", &cbc)
+	err := loadJSONTest("testdata/erc20_token.json", &cbc)
 	assert.Nil(err)
 
 	deploymentCode, err := hex.DecodeString(cbc.DeploymentCode)

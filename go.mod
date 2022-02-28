@@ -1,16 +1,10 @@
 module github.com/dnerochain/dnero
 
 require (
-	github.com/Masterminds/glide v0.13.3 // indirect
-	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Masterminds/vcs v1.13.1 // indirect
 	github.com/aerospike/aerospike-client-go v1.36.0
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/codegangsta/cli v1.22.5 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger v1.6.0-rc1
-	github.com/dnerochain/dnero/common v0.0.0
-	github.com/dnerochain/dnero/rpc/lib/rpc-codec/jsonrpc2 v0.0.0
 	github.com/fd/go-nat v1.0.0
 	github.com/golang/protobuf v1.3.1
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
@@ -39,7 +33,6 @@ require (
 	github.com/libp2p/go-stream-muxer v0.1.0
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mongodb/mongo-go-driver v0.0.17
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
@@ -49,17 +42,16 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.4.0
 	github.com/prysmaticlabs/prysm v0.0.0-20191018160938-a05dca18c7f7
-	github.com/rigelrozanski/common v0.0.0-20210311025744-9989bc79e6e1 // indirect
-	github.com/rigelrozanski/shelldown v0.0.0-20170831072513-2e18b6eb9bf4 // indirect
 	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/smira/go-statsd v1.3.1
-	github.com/spf13/afero v1.1.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/dnerochain/dnero/common v0.0.0
+	github.com/dnerochain/dnero/rpc/lib/rpc-codec/jsonrpc2 v0.0.0
 	github.com/tidwall/pretty v1.0.0 // indirect
 	github.com/wedeploy/gosocketio v0.0.7-beta
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
@@ -68,8 +60,8 @@ require (
 	github.com/yuin/gopher-lua v0.0.0-20180827083657-b942cacc89fe // indirect
 	go.opencensus.io v0.21.0
 	golang.org/x/crypto v0.0.0-20191001170739-f9e2070545dc
-	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
-	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
+	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
+	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
 	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
@@ -80,7 +72,3 @@ replace github.com/dnerochain/dnero/rpc/lib/rpc-codec/jsonrpc2 v0.0.0 => ./rpc/l
 replace github.com/dnerochain/dnero/common v0.0.0 => ./common
 
 go 1.13
-
-replace github.com/codegangsta/cli => ./deps/urfave/cli
-
-replace github.com/herumi/bls-eth-go-binary v0.0.0-20200107021104-147ed25f233e => ./deps/herumi/bls-eth-go-binary

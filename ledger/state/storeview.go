@@ -100,6 +100,12 @@ func (sv *StoreView) Get(key common.Bytes) common.Bytes {
 	return value
 }
 
+// Traverse traverses the trie and calls cb callback func on every key/value pair
+// with key having prefix
+func (sv *StoreView) Traverse(prefix common.Bytes, cb func(k, v common.Bytes) bool) bool {
+	return sv.store.Traverse(prefix, cb)
+}
+
 func (sv *StoreView) ProveVCP(vcpKey []byte, vp *core.VCPProof) error {
 	return sv.store.ProveVCP(vcpKey, vp)
 }
@@ -313,7 +319,7 @@ func (sv *StoreView) UpdateValidatorCandidatePool(vcp *core.ValidatorCandidatePo
 	sv.Set(ValidatorCandidatePoolKey(), vcpBytes)
 }
 
-// GetGuradianCandidatePool gets the guardian candidate pool.
+// GetGuardianCandidatePool gets the guardian candidate pool.
 func (sv *StoreView) GetGuardianCandidatePool() *core.GuardianCandidatePool {
 	data := sv.Get(GuardianCandidatePoolKey())
 	if data == nil || len(data) == 0 {
@@ -322,7 +328,7 @@ func (sv *StoreView) GetGuardianCandidatePool() *core.GuardianCandidatePool {
 	gcp := &core.GuardianCandidatePool{}
 	err := types.FromBytes(data, gcp)
 	if err != nil {
-		log.Panicf("Error reading validator candidate pool %X, error: %v",
+		log.Panicf("Error reading guardian candidate pool %X, error: %v",
 			data, err.Error())
 	}
 	return gcp
@@ -364,6 +370,53 @@ func (sv *StoreView) UpdateStakeTransactionHeightList(hl *types.HeightList) {
 	sv.Set(StakeTransactionHeightListKey(), hlBytes)
 }
 
+type StakeWithHolder struct {
+	Holder common.Address
+	Stake  core.Stake
+}
+
+// GetEliteEdgeNodeStakeReturns gets the elite edge node stake returns
+func (sv *StoreView) GetEliteEdgeNodeStakeReturns(height uint64) []StakeWithHolder {
+	data := sv.Get(EliteEdgeNodeStakeReturnsKey(height))
+	if data == nil || len(data) == 0 {
+		return []StakeWithHolder{}
+	}
+
+	returnedStakes := []StakeWithHolder{}
+	err := types.FromBytes(data, &returnedStakes)
+	if err != nil {
+		log.Panicf("Error reading elite edge stake returns %v, error: %v",
+			data, err.Error())
+	}
+	return returnedStakes
+}
+
+// GetEliteEdgeNodeStakeReturns saves the elite edge node stake returns for the given height
+func (sv *StoreView) SetEliteEdgeNodeStakeReturns(height uint64, stakeReturns []StakeWithHolder) {
+	returnedStakesBytes, err := types.ToBytes(stakeReturns)
+	if err != nil {
+		log.Panicf("Error writing elite edge stake returns %v, error: %v",
+			stakeReturns, err)
+	}
+	sv.Set(EliteEdgeNodeStakeReturnsKey(height), returnedStakesBytes)
+}
+
+// RemoveEliteEdgeNodeStakeReturns removes the elite edge node stake returns for the given height
+func (sv *StoreView) RemoveEliteEdgeNodeStakeReturns(height uint64) {
+	sv.Delete(EliteEdgeNodeStakeReturnsKey(height))
+}
+
+// GetTotalEENStake retrives the total active EEN stakes
+func (sv *StoreView) GetTotalEENStake() *big.Int {
+	raw := sv.Get(EliteEdgeNodesTotalActiveStakeKey())
+	return new(big.Int).SetBytes(raw)
+}
+
+// SetTotalEENStake sets the total active EEN stakes
+func (sv *StoreView) SetTotalEENStake(amount *big.Int) {
+	sv.Set(EliteEdgeNodesTotalActiveStakeKey(), amount.Bytes())
+}
+
 func (sv *StoreView) GetStore() *treestore.TreeStore {
 	return sv.store
 }
@@ -395,6 +448,17 @@ func (sv *StoreView) GetOrCreateAccount(addr common.Address) *types.Account {
 	return types.NewAccount(addr)
 }
 
+func (sv *StoreView) CreateAccountWithPreviousBalance(addr common.Address) {
+	account := types.NewAccount(addr)
+
+	existingAccount := sv.GetAccount(addr)
+	if existingAccount != nil { // only copy over the account balance, reset other fields including the account sequence
+		account.Balance = existingAccount.Balance.NoNil()
+	}
+
+	sv.SetAccount(addr, account)
+}
+
 func (sv *StoreView) SubBalance(addr common.Address, amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
@@ -404,7 +468,7 @@ func (sv *StoreView) SubBalance(addr common.Address, amount *big.Int) {
 		panic(fmt.Sprintf("Account for %v does not exist!", addr))
 	}
 	account.Balance = account.Balance.NoNil()
-	account.Balance.DFuelWei.Sub(account.Balance.DFuelWei, amount)
+	account.Balance.DTokenWei.Sub(account.Balance.DTokenWei, amount)
 	sv.SetAccount(addr, account)
 }
 
@@ -414,12 +478,35 @@ func (sv *StoreView) AddBalance(addr common.Address, amount *big.Int) {
 	}
 	account := sv.GetOrCreateAccount(addr)
 	account.Balance = account.Balance.NoNil()
-	account.Balance.DFuelWei.Add(account.Balance.DFuelWei, amount)
+	account.Balance.DTokenWei.Add(account.Balance.DTokenWei, amount)
 	sv.SetAccount(addr, account)
 }
 
 func (sv *StoreView) GetBalance(addr common.Address) *big.Int {
-	return sv.GetOrCreateAccount(addr).Balance.DFuelWei
+	return sv.GetOrCreateAccount(addr).Balance.DTokenWei
+}
+
+func (sv *StoreView) SubDneroBalance(addr common.Address, amount *big.Int) {
+	if amount.Sign() == 0 {
+		return
+	}
+	account := sv.GetAccount(addr)
+	if account == nil {
+		panic(fmt.Sprintf("Account for %v does not exist!", addr))
+	}
+	account.Balance = account.Balance.NoNil()
+	account.Balance.DneroWei.Sub(account.Balance.DneroWei, amount)
+	sv.SetAccount(addr, account)
+}
+
+func (sv *StoreView) AddDneroBalance(addr common.Address, amount *big.Int) {
+	if amount.Sign() == 0 {
+		return
+	}
+	account := sv.GetOrCreateAccount(addr)
+	account.Balance = account.Balance.NoNil()
+	account.Balance.DneroWei.Add(account.Balance.DneroWei, amount)
+	sv.SetAccount(addr, account)
 }
 
 // GetDneroBalance returns the DneroWei balance of the given address
@@ -526,6 +613,11 @@ func (sv *StoreView) ResetRefund() {
 	sv.refund = 0
 }
 
+func (sv *StoreView) GetBlockHeight() uint64 {
+	blockHeight := sv.height + 1
+	return blockHeight
+}
+
 func (sv *StoreView) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
 	return sv.GetState(addr, key)
 }
@@ -592,7 +684,7 @@ func (sv *StoreView) Suicide(addr common.Address) bool {
 		return false
 	}
 	account.CodeHash = core.SuicidedCodeHash
-	account.Balance.DFuelWei = big.NewInt(0)
+	account.Balance.DTokenWei = big.NewInt(0)
 	sv.SetAccount(addr, account)
 	return true
 }

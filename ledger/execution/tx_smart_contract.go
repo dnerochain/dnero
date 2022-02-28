@@ -1,6 +1,7 @@
 package execution
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/dnerochain/dnero/common"
 	"github.com/dnerochain/dnero/common/result"
 	"github.com/dnerochain/dnero/core"
+	"github.com/dnerochain/dnero/crypto"
 	st "github.com/dnerochain/dnero/ledger/state"
 	"github.com/dnerochain/dnero/ledger/types"
 	"github.com/dnerochain/dnero/ledger/vm"
@@ -32,6 +34,7 @@ func NewSmartContractTxExecutor(chain *blockchain.Chain, state *st.LedgerState) 
 }
 
 func (exec *SmartContractTxExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
+	blockHeight := getBlockHeight(exec.state)
 	tx := transaction.(*types.SmartContractTx)
 
 	// Validate from, basic
@@ -40,18 +43,52 @@ func (exec *SmartContractTxExecutor) sanityCheck(chainID string, view *st.StoreV
 		return res
 	}
 
+	// Check signatures
+	signBytes := tx.SignBytes(chainID)
+	nativeSignatureValid := tx.From.Signature.Verify(signBytes, tx.From.Address)
+	if blockHeight >= common.HeightTxWrapperExtension {
+		signBytesV2 := types.ChangeEthereumTxWrapper(signBytes, 2)
+		nativeSignatureValid = nativeSignatureValid || tx.From.Signature.Verify(signBytesV2, tx.From.Address)
+	}
+
+	if !nativeSignatureValid {
+		if blockHeight < common.HeightRPCCompatibility {
+			return result.Error("Signature verification failed, SignBytes: %v",
+				hex.EncodeToString(signBytes)).WithErrorCode(result.CodeInvalidSignature)
+		}
+
+		// interpret the signature as ETH tx signature
+		if tx.From.Coins.DneroWei.Cmp(big.NewInt(0)) != 0 {
+			return result.Error("Sending Dnero with ETH transaction is not allowed") // extra check, since ETH transaction only signs the DToken part (i.e., value, gasPrice, gasLimit, etc)
+		}
+
+		ethSigningHash := tx.EthSigningHash(chainID, blockHeight)
+		err := crypto.ValidateEthSignature(tx.From.Address, ethSigningHash, tx.From.Signature)
+		if err != nil {
+			return result.Error("ETH Signature verification failed, SignBytes: %v, error: %v",
+				hex.EncodeToString(signBytes), err.Error()).WithErrorCode(result.CodeInvalidSignature)
+		}
+	}
+
 	// Get input account
 	fromAccount, success := getInput(view, tx.From)
 	if success.IsError() {
-		return result.Error("Failed to get the account (the address has no Dnero nor DFuel)")
+		return result.Error("Failed to get the account (the address has no Dnero nor DToken)")
 	}
 
 	// Validate input, advanced
-	signBytes := tx.SignBytes(chainID)
-	res = validateInputAdvanced(fromAccount, signBytes, tx.From)
-	if res.IsError() {
-		logger.Debugf(fmt.Sprintf("validateSourceAdvanced failed on %v: %v", tx.From.Address.Hex(), res))
-		return res
+
+	// Check sequence/coins
+	seq, balance := fromAccount.Sequence, fromAccount.Balance
+	if seq+1 != tx.From.Sequence {
+		return result.Error("ValidateInputAdvanced: Got %v, expected %v. (acc.seq=%v)",
+			tx.From.Sequence, seq+1, fromAccount.Sequence).WithErrorCode(result.CodeInvalidSequence)
+	}
+
+	// Check amount
+	if !balance.IsGTE(tx.From.Coins) {
+		return result.Error("Insufficient fund: balance is %v, tried to send %v",
+			balance, tx.From.Coins).WithErrorCode(result.CodeInsufficientFund)
 	}
 
 	coins := tx.From.Coins.NoNil()
@@ -60,13 +97,15 @@ func (exec *SmartContractTxExecutor) sanityCheck(chainID string, view *st.StoreV
 			WithErrorCode(result.CodeInvalidValueToTransfer)
 	}
 
-	if !sanityCheckForGasPrice(tx.GasPrice) {
-		return result.Error("Insufficient gas price. Gas price needs to be at least %v DFuelWei", types.MinimumGasPrice).
+	if !sanityCheckForGasPrice(tx.GasPrice, blockHeight) {
+		minimumGasPrice := types.GetMinimumGasPrice(blockHeight)
+		return result.Error("Insufficient gas price. Gas price needs to be at least %v DTokenWei", minimumGasPrice).
 			WithErrorCode(result.CodeInvalidGasPrice)
 	}
 
-	if tx.GasLimit > types.MaximumTxGasLimit {
-		return result.Error("Invalid gas limit. Gas limit needs to be at most %v", types.MaximumTxGasLimit).
+	maxGasLimit := types.GetMaxGasLimit(blockHeight)
+	if new(big.Int).SetUint64(tx.GasLimit).Cmp(maxGasLimit) > 0 {
+		return result.Error("Invalid gas limit. Gas limit needs to be at most %v", maxGasLimit).
 			WithErrorCode(result.CodeInvalidGasLimit)
 	}
 
@@ -79,11 +118,21 @@ func (exec *SmartContractTxExecutor) sanityCheck(chainID string, view *st.StoreV
 			WithErrorCode(result.CodeFeeLimitTooHigh)
 	}
 
-	value := coins.DFuelWei // NoNil() already guarantees value is NOT nil
-	minimalBalance := types.Coins{
-		DneroWei: zero,
-		DFuelWei: feeLimit.Add(feeLimit, value),
+	var minimalBalance types.Coins
+	value := coins.DTokenWei      // NoNil() already guarantees value is NOT nil
+	dneroValue := coins.DneroWei // NoNil() already guarantees value is NOT nil
+	if !vm.SupportDneroTransferInEVM(blockHeight) {
+		minimalBalance = types.Coins{
+			DneroWei: zero,
+			DTokenWei: feeLimit.Add(feeLimit, value),
+		}
+	} else {
+		minimalBalance = types.Coins{
+			DneroWei: dneroValue,
+			DTokenWei: feeLimit.Add(feeLimit, value),
+		}
 	}
+
 	if !fromAccount.Balance.IsGTE(minimalBalance) {
 		logger.Infof(fmt.Sprintf("Source did not have enough balance %v", tx.From.Address.Hex()))
 		return result.Error("Source balance is %v, but required minimal balance is %v",
@@ -112,7 +161,7 @@ func (exec *SmartContractTxExecutor) process(chainID string, view *st.StoreView,
 	feeAmount := new(big.Int).Mul(tx.GasPrice, new(big.Int).SetUint64(gasUsed))
 	fee := types.Coins{
 		DneroWei: big.NewInt(int64(0)),
-		DFuelWei: feeAmount,
+		DTokenWei: feeAmount,
 	}
 	if !chargeFee(fromAccount, fee) {
 		return common.Hash{}, result.Error("failed to charge transaction fee")

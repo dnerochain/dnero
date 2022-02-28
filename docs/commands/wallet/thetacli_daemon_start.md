@@ -1,10 +1,10 @@
 ## dnerocli daemon start
 
-Run the dnerocli daemon
+Run the thatacli daemon
 
 ### Synopsis
 
-Run the dnerocli daemon.
+Run the thatacli daemon.
 
 ```
 dnerocli daemon start [flags]
@@ -13,14 +13,14 @@ dnerocli daemon start [flags]
 ### Examples
 
 ```
-dnerocli daemon start --port=14511
+dnerocli daemon start --port=16889
 ```
 
 ### Options
 
 ```
   -h, --help          help for start
-      --port string   Port to run the DneroCli Daemon (default "14511")
+      --port string   Port to run the DneroCli Daemon (default "16889")
 ```
 
 ### Options inherited from parent commands

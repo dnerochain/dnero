@@ -13,7 +13,7 @@ import (
 	"github.com/dnerochain/dnero/rlp"
 )
 
-const SnapshotHeaderMagic = "DneroNetwork"
+const SnapshotHeaderMagic = "DneroToDaMoon"
 const BlockTrioStoreKeyPrefix = "prooftrio_"
 const (
 	SVStart = iota

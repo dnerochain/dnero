@@ -36,6 +36,7 @@ const (
 	TxDepositStake
 	TxWithdrawStake
 	TxDepositStakeV2
+	TxStakeRewardDistribution
 )
 
 func Fuzz(data []byte) int {
@@ -106,7 +107,11 @@ func TxFromBytes(raw []byte) (Tx, error) {
 		err = s.Decode(data)
 		return data, err
 	} else if txType == TxDepositStakeV2 {
-		data := &DepositStakeTxV1{}
+		data := &DepositStakeTxV2{}
+		err = s.Decode(data)
+		return data, err
+	} else if txType == TxStakeRewardDistribution {
+		data := &StakeRewardDistributionTx{}
 		err = s.Decode(data)
 		return data, err
 	} else {
@@ -138,8 +143,10 @@ func TxToBytes(t Tx) ([]byte, error) {
 		txType = TxDepositStake
 	case *WithdrawStakeTx:
 		txType = TxWithdrawStake
-	case *DepositStakeTxV1:
+	case *DepositStakeTxV2:
 		txType = TxDepositStakeV2
+	case *StakeRewardDistributionTx:
+		txType = TxStakeRewardDistribution
 	default:
 		return nil, errors.New("Unsupported message type")
 	}

@@ -13,7 +13,7 @@ dnerocli tx send [flags]
 ### Examples
 
 ```
-dnerocli tx send --chain="privatenet" --from=2E833968E5bB786Ae419c4d13189fB081Cc43bab --to=9F1233798E905E173560071255140b4A8aBd3Ec6 --dnero=10 --dfuel=9 --seq=1
+dnerocli tx send --chain="privatenet" --from=2E833968E5bB786Ae419c4d13189fB081Cc43bab --to=9F1233798E905E173560071255140b4A8aBd3Ec6 --dnero=10 --dtoken=9 --seq=1
 ```
 
 ### Options
@@ -26,7 +26,7 @@ dnerocli tx send --chain="privatenet" --from=2E833968E5bB786Ae419c4d13189fB081Cc
   -h, --help            help for send
       --path string     Wallet derivation path
       --seq uint        Sequence number of the transaction
-      --dfuel string    DFuel amount (default "0")
+      --dtoken string    DToken amount (default "0")
       --dnero string    Dnero amount (default "0")
       --to string       Address to send to
       --wallet string   Wallet type (soft|nano|trezor) (default "soft")

@@ -17,11 +17,14 @@ var _ TxExecutor = (*SendTxExecutor)(nil)
 
 // SendTxExecutor implements the TxExecutor interface
 type SendTxExecutor struct {
+	state *st.LedgerState
 }
 
 // NewSendTxExecutor creates a new instance of SendTxExecutor
-func NewSendTxExecutor() *SendTxExecutor {
-	return &SendTxExecutor{}
+func NewSendTxExecutor(state *st.LedgerState) *SendTxExecutor {
+	return &SendTxExecutor{
+		state: state,
+	}
 }
 
 func (exec *SendTxExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
@@ -64,21 +67,21 @@ func (exec *SendTxExecutor) sanityCheck(chainID string, view *st.StoreView, tran
 		for _, outAcc := range accounts {
 			if outAcc.IsASmartContract() {
 				return result.Error(
-					fmt.Sprintf("Sending Dnero/DFuel to a smart contract (%v) through a SendTx transaction is not allowed", outAcc.Address))
+					fmt.Sprintf("Sending Dnero/DToken to a smart contract (%v) through a SendTx transaction is not allowed", outAcc.Address))
 			}
 		}
 	}
 
 	// Validate inputs and outputs, advanced
 	signBytes := tx.SignBytes(chainID)
-	inTotal, res := validateInputsAdvanced(accounts, signBytes, tx.Inputs)
+	inTotal, res := validateInputsAdvanced(accounts, signBytes, tx.Inputs, blockHeight)
 	if res.IsError() {
 		return res
 	}
 
-	if !sanityCheckForFee(tx.Fee) {
-		return result.Error("Insufficient fee. Transaction fee needs to be at least %v DFuelWei",
-			types.MinimumTransactionFeeDFuelWei).WithErrorCode(result.CodeInvalidFee)
+	if minTxFee, success := sanityCheckForSendTxFee(tx.Fee, numAccountsAffected, blockHeight); !success {
+		return result.Error("Insufficient fee. Transaction fee needs to be at least %v DTokenWei",
+			minTxFee).WithErrorCode(result.CodeInvalidFee)
 	}
 
 	outTotal := sumOutputs(tx.Outputs)
@@ -124,11 +127,13 @@ func (exec *SendTxExecutor) calculateEffectiveGasPrice(transaction types.Tx) *bi
 	tx := transaction.(*types.SendTx)
 	fee := tx.Fee
 	numAccountsAffected := uint64(len(tx.Inputs) + len(tx.Outputs))
-	gasUint64 := types.GasSendTxPerAccount * numAccountsAffected
-	if gasUint64 < 2*types.GasSendTxPerAccount {
-		gasUint64 = 2 * types.GasSendTxPerAccount // to prevent spamming with invalid transactions, e.g. empty inputs/outputs
+
+	gasSendTxPerAccount := getRegularTxGas(exec.state) / 2
+	gasUint64 := gasSendTxPerAccount * numAccountsAffected
+	if gasUint64 < 2*gasSendTxPerAccount {
+		gasUint64 = 2 * gasSendTxPerAccount // to prevent spamming with invalid transactions, e.g. empty inputs/outputs
 	}
 	gas := new(big.Int).SetUint64(gasUint64)
-	effectiveGasPrice := new(big.Int).Div(fee.DFuelWei, gas)
+	effectiveGasPrice := new(big.Int).Div(fee.DTokenWei, gas)
 	return effectiveGasPrice
 }

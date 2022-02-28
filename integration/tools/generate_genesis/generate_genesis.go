@@ -38,12 +38,12 @@ type StakeDeposit struct {
 //
 // Example:
 // pushd $DNERO_HOME/integration/privatenet/node
-// generate_genesis -chainID=privatenet -allocationsnapshot=./data/genesis_dnero_allocation_snapshot.json -stake_deposit=./data/genesis_stake_deposit.json -genesis=./genesis
+// generate_genesis -chainID=privatenet -erc20snapshot=./data/genesis_dnero_erc20_snapshot.json -stake_deposit=./data/genesis_stake_deposit.json -genesis=./genesis
 //
 func main() {
-	chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath := parseArguments()
+	chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath := parseArguments()
 
-	sv, metadata, err := generateGenesisSnapshot(chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath)
+	sv, metadata, err := generateGenesisSnapshot(chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to generate genesis snapshot: %v", err))
 	}
@@ -70,15 +70,15 @@ func main() {
 	fmt.Println("")
 }
 
-func parseArguments() (chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath string) {
+func parseArguments() (chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath string) {
 	chainIDPtr := flag.String("chainID", "local_chain", "the ID of the chain")
-	allocationSnapshotJSONFilePathPtr := flag.String("allocationsnapshot", "./dnero_allocation_snapshot.json", "the json file contain the ALLOCATION balance snapshot")
+	erc20SnapshotJSONFilePathPtr := flag.String("erc20snapshot", "./dnero_erc20_snapshot.json", "the json file contain the ERC20 balance snapshot")
 	stakeDepositFilePathPtr := flag.String("stake_deposit", "./stake_deposit.json", "the initial stake deposits")
 	genesisSnapshotFilePathPtr := flag.String("genesis", "./genesis", "the genesis snapshot")
 	flag.Parse()
 
 	chainID = *chainIDPtr
-	allocationSnapshotJSONFilePath = *allocationSnapshotJSONFilePathPtr
+	erc20SnapshotJSONFilePath = *erc20SnapshotJSONFilePathPtr
 	stakeDepositFilePath = *stakeDepositFilePathPtr
 	genesisSnapshotFilePath = *genesisSnapshotFilePathPtr
 
@@ -86,11 +86,11 @@ func parseArguments() (chainID, allocationSnapshotJSONFilePath, stakeDepositFile
 }
 
 // generateGenesisSnapshot generates the genesis snapshot.
-func generateGenesisSnapshot(chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath string) (*state.StoreView, *core.SnapshotMetadata, error) {
+func generateGenesisSnapshot(chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath string) (*state.StoreView, *core.SnapshotMetadata, error) {
 	metadata := &core.SnapshotMetadata{}
 	genesisHeight := core.GenesisBlockHeight
 
-	sv := loadInitialBalances(allocationSnapshotJSONFilePath)
+	sv := loadInitialBalances(erc20SnapshotJSONFilePath)
 	performInitialStakeDeposit(stakeDepositFilePath, genesisHeight, sv)
 
 	stateHash := sv.Hash()
@@ -112,24 +112,24 @@ func generateGenesisSnapshot(chainID, allocationSnapshotJSONFilePath, stakeDepos
 	return sv, metadata, nil
 }
 
-func loadInitialBalances(allocationSnapshotJSONFilePath string) *state.StoreView {
-	initDFuelToDneroRatio := new(big.Int).SetUint64(10)
+func loadInitialBalances(erc20SnapshotJSONFilePath string) *state.StoreView {
+	initDTokenToDneroRatio := new(big.Int).SetUint64(5)
 	sv := state.NewStoreView(0, common.Hash{}, backend.NewMemDatabase())
 
-	allocationSnapshotJSONFile, err := os.Open(allocationSnapshotJSONFilePath)
+	erc20SnapshotJSONFile, err := os.Open(erc20SnapshotJSONFilePath)
 	if err != nil {
-		panic(fmt.Sprintf("failed to open the ALLOCATION balance snapshot: %v", err))
+		panic(fmt.Sprintf("failed to open the ERC20 balance snapshot: %v", err))
 	}
-	defer allocationSnapshotJSONFile.Close()
+	defer erc20SnapshotJSONFile.Close()
 
-	var allocationBalanceMap map[string]string
-	allocationBalanceMapByteValue, err := ioutil.ReadAll(allocationSnapshotJSONFile)
+	var erc20BalanceMap map[string]string
+	erc20BalanceMapByteValue, err := ioutil.ReadAll(erc20SnapshotJSONFile)
 	if err != nil {
-		panic(fmt.Sprintf("failed to read the ALLOCATION balance snapshot: %v", err))
+		panic(fmt.Sprintf("failed to read the ERC20 balance snapshot: %v", err))
 	}
 
-	json.Unmarshal(allocationBalanceMapByteValue, &allocationBalanceMap)
-	for key, val := range allocationBalanceMap {
+	json.Unmarshal(erc20BalanceMapByteValue, &erc20BalanceMap)
+	for key, val := range erc20BalanceMap {
 		if !common.IsHexAddress(key) {
 			panic(fmt.Sprintf("Invalid address: %v", key))
 		}
@@ -139,18 +139,18 @@ func loadInitialBalances(allocationSnapshotJSONFilePath string) *state.StoreView
 		if !success {
 			panic(fmt.Sprintf("Failed to parse DneroWei amount: %v", val))
 		}
-		dfuel := new(big.Int).Mul(initDFuelToDneroRatio, dnero)
+		dtoken := new(big.Int).Mul(initDTokenToDneroRatio, dnero)
 		acc := &types.Account{
 			Address:  address,
 			Root:     common.Hash{},
 			CodeHash: types.EmptyCodeHash,
 			Balance: types.Coins{
 				DneroWei: dnero,
-				DFuelWei: dfuel,
+				DTokenWei: dtoken,
 			},
 		}
 		sv.SetAccount(acc.Address, acc)
-		//logger.Infof("address: %v, dnero: %v, dfuel: %v", strings.ToLower(address.String()), dnero, dfuel)
+		//logger.Infof("address: %v, dnero: %v, dtoken: %v", strings.ToLower(address.String()), dnero, dtoken)
 	}
 
 	return sv
@@ -195,7 +195,7 @@ func performInitialStakeDeposit(stakeDepositFilePath string, genesisHeight uint6
 
 		stake := types.Coins{
 			DneroWei: stakeAmount,
-			DFuelWei: new(big.Int).SetUint64(0),
+			DTokenWei: new(big.Int).SetUint64(0),
 		}
 		sourceAccount.Balance = sourceAccount.Balance.Minus(stake)
 		sv.SetAccount(sourceAddress, sourceAccount)
@@ -255,7 +255,7 @@ func writeStoreView(sv *state.StoreView, needAccountStorage bool, writer *bufio.
 
 func sanityChecks(sv *state.StoreView) error {
 	dneroWeiTotal := new(big.Int).SetUint64(0)
-	dfuelWeiTotal := new(big.Int).SetUint64(0)
+	dtokenWeiTotal := new(big.Int).SetUint64(0)
 
 	vcpAnalyzed := false
 	sv.GetStore().Traverse(nil, func(key, val common.Bytes) bool {
@@ -295,11 +295,11 @@ func sanityChecks(sv *state.StoreView) error {
 			}
 
 			dneroWei := account.Balance.DneroWei
-			dfuelWei := account.Balance.DFuelWei
+			dtokenWei := account.Balance.DTokenWei
 			dneroWeiTotal = new(big.Int).Add(dneroWeiTotal, dneroWei)
-			dfuelWeiTotal = new(big.Int).Add(dfuelWeiTotal, dfuelWei)
+			dtokenWeiTotal = new(big.Int).Add(dtokenWeiTotal, dtokenWei)
 
-			logger.Infof("Account: %v, DneroWei = %v, DFuelWei = %v", account.Address, dneroWei, dfuelWei)
+			logger.Infof("Account: %v, DneroWei = %v, DTokenWei = %v", account.Address, dneroWei, dtokenWei)
 		}
 		return true
 	})
@@ -317,25 +317,25 @@ func sanityChecks(sv *state.StoreView) error {
 		return fmt.Errorf("VCP not detected in the genesis file")
 	}
 
-	// Check #2: Sum(DneroWei) + Sum(Stake) == 1 * 10^8 * 10^18
-	onehundredMillion := new(big.Int).SetUint64(100000000)
-	oneBillion := new(big.Int).Mul(new(big.Int).SetUint64(10), onehundredMillion)
+	// Check #2: Sum(DneroWei) + Sum(Stake) == 1 * 10^9 * 10^18
+	oneBillion := new(big.Int).SetUint64(1000000000)
+	fiveBillion := new(big.Int).Mul(new(big.Int).SetUint64(5), oneBillion)
 	ten18 := new(big.Int).SetUint64(1000000000000000000)
 
-	expectedDneroWeiTotal := new(big.Int).Mul(onehundredMillion, ten18)
+	expectedDneroWeiTotal := new(big.Int).Mul(oneBillion, ten18)
 	if expectedDneroWeiTotal.Cmp(dneroWeiTotal) != 0 {
 		return fmt.Errorf("Unmatched DneroWei total: expected = %v, calculated = %v", expectedDneroWeiTotal, dneroWeiTotal)
 	}
 	logger.Infof("Expected   DneroWei total = %v", expectedDneroWeiTotal)
 	logger.Infof("Calculated DneroWei total = %v", dneroWeiTotal)
 
-	// Check #3: Sum(DFuelWei) == 10 * 10^8 * 10^18
-	expectedDFuelWeiTotal := new(big.Int).Mul(oneBillion, ten18)
-	if expectedDFuelWeiTotal.Cmp(dfuelWeiTotal) != 0 {
-		return fmt.Errorf("Unmatched DFuelWei total: expected = %v, calculated = %v", expectedDFuelWeiTotal, dfuelWeiTotal)
+	// Check #3: Sum(DTokenWei) == 5 * 10^9 * 10^18
+	expectedDTokenWeiTotal := new(big.Int).Mul(fiveBillion, ten18)
+	if expectedDTokenWeiTotal.Cmp(dtokenWeiTotal) != 0 {
+		return fmt.Errorf("Unmatched DTokenWei total: expected = %v, calculated = %v", expectedDTokenWeiTotal, dtokenWeiTotal)
 	}
-	logger.Infof("Expected   DFuelWei total = %v", expectedDFuelWeiTotal)
-	logger.Infof("Calculated DFuelWei total = %v", dfuelWeiTotal)
+	logger.Infof("Expected   DTokenWei total = %v", expectedDTokenWeiTotal)
+	logger.Infof("Calculated DTokenWei total = %v", dtokenWeiTotal)
 
 	return nil
 }

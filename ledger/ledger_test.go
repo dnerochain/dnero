@@ -66,7 +66,7 @@ func TestLedgerProposerBlockTxs(t *testing.T) {
 	startTime := time.Now()
 
 	// Propose block transactions
-	_, blockTxs, res := ledger.ProposeBlockTxs(nil)
+	_, blockTxs, res := ledger.ProposeBlockTxs(nil, true)
 
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime)
@@ -119,7 +119,7 @@ func TestLedgerApplyBlockTxs(t *testing.T) {
 	sendTx3Bytes := newRawSendTx(chainID, 1, true, accOut, accIns[2], false)
 	sendTx4Bytes := newRawSendTx(chainID, 1, true, accOut, accIns[3], false)
 	sendTx5Bytes := newRawSendTx(chainID, 1, true, accOut, accIns[4], false)
-	inAccInitDFuelWei := accIns[0].Balance.DFuelWei
+	inAccInitDTokenWei := accIns[0].Balance.DTokenWei
 	txFee := getMinimumTxFee()
 
 	blockRawTxs := []common.Bytes{
@@ -154,7 +154,7 @@ func TestLedgerApplyBlockTxs(t *testing.T) {
 	// Input account balance
 	expectedAccInBal := types.Coins{
 		DneroWei: new(big.Int).SetInt64(899985),
-		DFuelWei: inAccInitDFuelWei.Sub(inAccInitDFuelWei, new(big.Int).SetInt64(txFee)),
+		DTokenWei: inAccInitDTokenWei.Sub(inAccInitDTokenWei, new(big.Int).SetInt64(txFee)),
 	}
 	for idx, _ := range accIns {
 		accInAddr := accIns[idx].Account.Address
@@ -196,7 +196,7 @@ func TestValidatorStakeUpdate(t *testing.T) {
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
 				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(10), core.MinValidatorStakeDeposit),
-				DFuelWei: new(big.Int).SetUint64(0),
+				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 1,
 		},
@@ -330,7 +330,7 @@ func TestValidatorStakeUpdate(t *testing.T) {
 	for h := uint64(0); h < heightDelta1; h++ {
 		es.state.Commit() // increment height
 	}
-	expectedStateHash, _, res := es.consensus.GetLedger().ProposeBlockTxs(nil) // nil skips adding the CoinbaseTx, but it is OK for our test
+	expectedStateHash, _, res := es.consensus.GetLedger().ProposeBlockTxs(nil, true) // nil skips adding the CoinbaseTx, but it is OK for our test
 	blockX := &core.Block{BlockHeader: &core.BlockHeader{
 		Height:    es.state.Height() + 1,
 		StateHash: expectedStateHash,
@@ -348,7 +348,7 @@ func TestValidatorStakeUpdate(t *testing.T) {
 	for h := uint64(0); h < heightDelta2; h++ {
 		es.state.Commit() // increment height
 	}
-	expectedStateHash, _, res = es.consensus.GetLedger().ProposeBlockTxs(nil) // nil skips adding the CoinbaseTx, but it is OK for our test
+	expectedStateHash, _, res = es.consensus.GetLedger().ProposeBlockTxs(nil, true) // nil skips adding the CoinbaseTx, but it is OK for our test
 	blockY := &core.Block{BlockHeader: &core.BlockHeader{
 		Height:    es.state.Height() + 1,
 		StateHash: expectedStateHash,
@@ -362,7 +362,7 @@ func TestValidatorStakeUpdate(t *testing.T) {
 
 	returnedCoins := balance3.Minus(balance2)
 	assert.True(returnedCoins.DneroWei.Cmp(new(big.Int).Mul(new(big.Int).SetUint64(5), core.MinValidatorStakeDeposit)) == 0)
-	assert.True(returnedCoins.DFuelWei.Cmp(core.Zero) == 0)
+	assert.True(returnedCoins.DTokenWei.Cmp(core.Zero) == 0)
 	log.Infof("Returned coins: %v", returnedCoins)
 }
 
@@ -385,13 +385,13 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	txFee := getMinimumTxFee()
 	depositSourcePrivAcc := srcPrivAccs[3]
 	depoistHolderPrivAcc := srcPrivAccs[4]
-	depositStakeTx := &types.DepositStakeTxV1{
+	depositStakeTx := &types.DepositStakeTxV2{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
 				DneroWei: new(big.Int).Set(core.MinGuardianStakeDeposit),
-				DFuelWei: new(big.Int).SetUint64(0),
+				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 1,
 		},
@@ -463,13 +463,13 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	es.addBlock(b1)
 
 	// ----------- BLS Pubkey/Pop in existing guardian's deposit should be ignored -------- //
-	depositStakeTx = &types.DepositStakeTxV1{
+	depositStakeTx = &types.DepositStakeTxV2{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
 				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(2), core.MinGuardianStakeDeposit),
-				DFuelWei: new(big.Int).SetUint64(0),
+				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 1,
 		},
@@ -495,13 +495,13 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	es.addBlock(b2)
 
 	// ----------- Guardian's deposit can omit BLS Pubkey/Pop -------- //
-	depositStakeTx = &types.DepositStakeTxV1{
+	depositStakeTx = &types.DepositStakeTxV2{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
 				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(3), core.MinGuardianStakeDeposit),
-				DFuelWei: new(big.Int).SetUint64(0),
+				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 2,
 		},
@@ -641,7 +641,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	for h := uint64(0); h < heightDelta1; h++ {
 		es.state.Commit() // increment height
 	}
-	expectedStateHash, _, res := es.consensus.GetLedger().ProposeBlockTxs(nil) // nil skips adding the CoinbaseTx, but it is OK for our test
+	expectedStateHash, _, res := es.consensus.GetLedger().ProposeBlockTxs(nil, true) // nil skips adding the CoinbaseTx, but it is OK for our test
 	blockX := &core.Block{BlockHeader: &core.BlockHeader{
 		Height:    es.state.Height() + 1,
 		StateHash: expectedStateHash,
@@ -659,7 +659,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	for h := uint64(0); h < heightDelta2; h++ {
 		es.state.Commit() // increment height
 	}
-	expectedStateHash, _, res = es.consensus.GetLedger().ProposeBlockTxs(nil) // nil skips adding the CoinbaseTx, but it is OK for our test
+	expectedStateHash, _, res = es.consensus.GetLedger().ProposeBlockTxs(nil, true) // nil skips adding the CoinbaseTx, but it is OK for our test
 	blockY := &core.Block{BlockHeader: &core.BlockHeader{
 		Height:    es.state.Height() + 1,
 		StateHash: expectedStateHash,
@@ -675,6 +675,6 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	// The 1st deposit(1*minimal) was from holder to holder , 2nd deposit(2*minimal) and 3rd deposit
 	// (3*minimal)was from source to holder.
 	assert.Equal(0, returnedCoins.DneroWei.Cmp(new(big.Int).Mul(new(big.Int).SetUint64(5), core.MinGuardianStakeDeposit)))
-	assert.True(returnedCoins.DFuelWei.Cmp(core.Zero) == 0)
+	assert.True(returnedCoins.DTokenWei.Cmp(core.Zero) == 0)
 	log.Infof("Returned coins: %v", returnedCoins)
 }

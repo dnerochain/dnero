@@ -173,8 +173,8 @@ var (
 )
 
 func init() {
-	// Each stake deposit needs to be at least 200000 Dnero
-	MinValidatorStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(200000), new(big.Int).SetUint64(1000000000000000000))
+	// Each stake deposit needs to be at least 2,000,000 Dnero
+	MinValidatorStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(2000000), new(big.Int).SetUint64(1000000000000000000))
 }
 
 type ValidatorCandidatePool struct {
@@ -216,7 +216,7 @@ func (vcp *ValidatorCandidatePool) DepositStake(source common.Address, holder co
 	}
 
 	if !matchedHolderFound {
-		newCandidate := newStakeHolder(holder, []*Stake{newStake(source, amount)})
+		newCandidate := NewStakeHolder(holder, []*Stake{NewStake(source, amount)})
 		vcp.SortedCandidates = append(vcp.SortedCandidates, newCandidate)
 	}
 
@@ -230,7 +230,7 @@ func (vcp *ValidatorCandidatePool) WithdrawStake(source common.Address, holder c
 	for _, candidate := range vcp.SortedCandidates {
 		if candidate.Holder == holder {
 			matchedHolderFound = true
-			err := candidate.withdrawStake(source, currentHeight)
+			_, err := candidate.withdrawStake(source, currentHeight)
 			if err != nil {
 				return err
 			}

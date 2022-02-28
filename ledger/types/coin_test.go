@@ -69,7 +69,7 @@ func TestcCoinsRLPNil(t *testing.T) {
 	rlp.DecodeBytes(rawA, b)
 
 	assert.NotNil(b.DneroWei)
-	assert.NotNil(b.DFuelWei)
+	assert.NotNil(b.DTokenWei)
 
 	c := NewCoins(0, 0)
 	rawC, err := rlp.EncodeToBytes(c)
@@ -134,7 +134,7 @@ func TestNoNilException(t *testing.T) {
 
 	coinsD := coinsB.NoNil()
 	assert.Equal(int64(0), coinsD.DneroWei.Int64())
-	assert.Equal(int64(0), coinsD.DFuelWei.Int64())
+	assert.Equal(int64(0), coinsD.DTokenWei.Int64())
 }
 
 func TestParseCoinAmount(t *testing.T) {
@@ -201,5 +201,5 @@ func TestJSON(t *testing.T) {
 	var d Coins
 	err = json.Unmarshal(s, &d)
 	assert.Equal(0, num.Cmp(d.DneroWei))
-	assert.Nil(d.DFuelWei)
+	assert.Nil(d.DTokenWei)
 }

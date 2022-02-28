@@ -6,7 +6,6 @@ import (
 
 	"github.com/dnerochain/dnero/common"
 	"github.com/dnerochain/dnero/core"
-	"github.com/dnerochain/dnero/crypto"
 	"github.com/dnerochain/dnero/ledger/state"
 	"github.com/dnerochain/dnero/ledger/types"
 	"github.com/dnerochain/dnero/ledger/vm/params"
@@ -25,23 +24,34 @@ func Execute(parentBlock *core.Block, tx *types.SmartContractTx, storeView *stat
 		Time:        parentBlock.Timestamp,
 		Difficulty:  new(big.Int).SetInt64(0),
 	}
-	chainIDBigInt := mapChainID(parentBlock.ChainID)
+	chainIDBigInt := types.MapChainID(parentBlock.ChainID, context.BlockNumber.Uint64())
 	chainConfig := &params.ChainConfig{
 		ChainID: chainIDBigInt,
 	}
 	config := Config{}
 	evm := NewEVM(context, storeView, chainConfig, config)
 
-	value := tx.From.Coins.DFuelWei
+	value := tx.From.Coins.DTokenWei
 	if value == nil {
 		value = big.NewInt(0)
 	}
+
+	dneroValue := tx.From.Coins.DneroWei
+	if dneroValue == nil {
+		dneroValue = big.NewInt(0)
+	}
+
 	gasLimit := tx.GasLimit
 	fromAddr := tx.From.Address
 	contractAddr = tx.To.Address
 	createContract := (contractAddr == common.Address{})
 
-	if gasLimit > types.MaximumTxGasLimit {
+	// if gasLimit > maxGasLimit {
+	// 	return common.Bytes{}, common.Address{}, 0, ErrInvalidGasLimit
+	// }
+	blockHeight := storeView.Height() + 1
+	maxGasLimit := types.GetMaxGasLimit(blockHeight)
+	if new(big.Int).SetUint64(gasLimit).Cmp(maxGasLimit) > 0 {
 		return common.Bytes{}, common.Address{}, 0, ErrInvalidGasLimit
 	}
 
@@ -57,10 +67,10 @@ func Execute(parentBlock *core.Block, tx *types.SmartContractTx, storeView *stat
 	remainingGas := gasLimit - intrinsicGas
 	if createContract {
 		code := tx.Data
-		evmRet, contractAddr, leftOverGas, evmErr = evm.Create(AccountRef(fromAddr), code, remainingGas, value)
+		evmRet, contractAddr, leftOverGas, evmErr = evm.Create(AccountRef(fromAddr), code, remainingGas, value, dneroValue)
 	} else {
 		input := tx.Data
-		evmRet, leftOverGas, evmErr = evm.Call(AccountRef(fromAddr), contractAddr, input, remainingGas, value)
+		evmRet, leftOverGas, evmErr = evm.Call(AccountRef(fromAddr), contractAddr, input, remainingGas, value, dneroValue)
 	}
 
 	if leftOverGas > gasLimit { // should not happen
@@ -103,23 +113,4 @@ func calculateIntrinsicGas(data []byte, createContract bool) (uint64, error) {
 		gas += z * params.TxDataZeroGas
 	}
 	return gas, nil
-}
-
-// To be compatible with Ethereum, mapChainID() returns 1 for "mainnet", 3 for "testnet_sapphire", and 4 for "testnet_amber"
-// Reference: https://github.com/ethereum/go-ethereum/blob/43cd31ea9f57e26f8f67aa8bd03bbb0a50814465/params/config.go#L55
-func mapChainID(chainIDStr string) *big.Int {
-	if chainIDStr == "mainnet" { // correspond to the Ethereum mainnet
-		return big.NewInt(1)
-	} else if chainIDStr == "testnet_sapphire" { // correspond to Ropsten
-		return big.NewInt(3)
-	} else if chainIDStr == "testnet_amber" { // correspond to Rinkeby
-		return big.NewInt(4)
-	} else if chainIDStr == "testnet" {
-		return big.NewInt(5)
-	} else if chainIDStr == "privatenet" {
-		return big.NewInt(6)
-	}
-
-	chainIDBigInt := new(big.Int).Abs(crypto.Keccak256Hash(common.Bytes(chainIDStr)).Big()) // all other chainIDs
-	return chainIDBigInt
 }

@@ -59,7 +59,7 @@ func newExecSim(chainID string, db database.Database, snapshot mockSnapshot, val
 
 	mempool := mp.CreateMempool(dispatcher, consensus)
 
-	ledgerState := st.NewLedgerState(chainID, db)
+	ledgerState := st.NewLedgerState(chainID, db, nil)
 	//ledgerState.ResetState(initHeight, snapshot.block.StateHash)
 	ledgerState.ResetState(snapshot.block)
 
@@ -113,27 +113,27 @@ func genSimSnapshot(chainID string, db database.Database) (snapshot mockSnapshot
 	src6Acc := types.MakeAcc("src6")
 	src1Acc.Balance = types.Coins{
 		DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(20), core.MinValidatorStakeDeposit),
-		DFuelWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
+		DTokenWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
 	}
 	src2Acc.Balance = types.Coins{
 		DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(20), core.MinValidatorStakeDeposit),
-		DFuelWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
+		DTokenWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
 	}
 	src3Acc.Balance = types.Coins{
 		DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(20), core.MinValidatorStakeDeposit),
-		DFuelWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
+		DTokenWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
 	}
 	src4Acc.Balance = types.Coins{
 		DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(20), core.MinValidatorStakeDeposit),
-		DFuelWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
+		DTokenWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
 	}
 	src5Acc.Balance = types.Coins{
 		DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(20), core.MinValidatorStakeDeposit),
-		DFuelWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
+		DTokenWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
 	}
 	src6Acc.Balance = types.Coins{
 		DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(20), core.MinValidatorStakeDeposit),
-		DFuelWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
+		DTokenWei: new(big.Int).Mul(new(big.Int).SetUint64(100), core.MinValidatorStakeDeposit),
 	}
 
 	val1Acc := types.MakeAcc("va1")
@@ -199,7 +199,7 @@ func newTestLedger() (chainID string, ledger *Ledger, mempool *mp.Mempool) {
 	p2psimnet := p2psim.NewSimnetWithHandler(nil)
 	messenger := p2psimnet.AddEndpoint(peerID)
 	mempool = newTestMempool(peerID, messenger, nil)
-	ledger = NewLedger(chainID, db, chain, consensus, valMgr, mempool)
+	ledger = NewLedger(chainID, db, nil, chain, consensus, valMgr, mempool)
 	mempool.SetLedger(ledger)
 
 	ctx := context.Background()
@@ -320,7 +320,7 @@ func newRawSendTx(chainID string, sequence int, addPubKey bool, accOut, accIn ty
 		if randint < 0 {
 			randint = -randint
 		}
-		delta = randint * int64(types.GasSendTxPerAccount*2)
+		delta = randint * int64(types.GasRegularTxJune2021)
 		if err != nil {
 			panic(err)
 		}
@@ -362,5 +362,5 @@ func newRawSendTx(chainID string, sequence int, addPubKey bool, accOut, accIn ty
 }
 
 func getMinimumTxFee() int64 {
-	return int64(types.MinimumTransactionFeeDFuelWei)
+	return int64(types.MinimumTransactionFeeDTokenWei)
 }

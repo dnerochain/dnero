@@ -277,11 +277,11 @@ func (acc *Account) generateSlashIntent(reservedFund *ReservedFund, currentServi
 }
 
 func (acc *Account) UpdateToHeight(height uint64) {
-	//	acc.UpdateAccountDFuelReward(height) // Initial DFuel inflation should be zero for all accounts
+	//	acc.UpdateAccountDTokenReward(height) // Initial DToken inflation should be zero for all accounts
 	acc.ReleaseExpiredFunds(height)
 }
 
-// func (acc *Account) UpdateAccountDFuelReward(currentBlockHeight uint64) {
+// func (acc *Account) UpdateAccountDTokenReward(currentBlockHeight uint64) {
 // 	if acc.LastUpdatedBlockHeight < 0 || acc.LastUpdatedBlockHeight > currentBlockHeight {
 // 		panic(fmt.Sprintf("Invalid LastRewardedBlockHeight: acc.LastUpdatedBlockHeight: %d, currentBlockHeight: %d", acc.LastUpdatedBlockHeight, currentBlockHeight))
 // 	}
@@ -292,25 +292,25 @@ func (acc *Account) UpdateToHeight(height uint64) {
 // 	}
 // 	span := currentBlockHeight - acc.LastUpdatedBlockHeight
 
-// 	newDFuelBalance := big.NewInt(int64(span))
-// 	newDFuelBalance.Mul(newDFuelBalance, totalDneroWei)
-// 	newDFuelBalance.Mul(newDFuelBalance, big.NewInt(RegularDFuelGenerationRateNumerator))
-// 	newDFuelBalance.Div(newDFuelBalance, big.NewInt(RegularDFuelGenerationRateDenominator))
+// 	newDTokenBalance := big.NewInt(int64(span))
+// 	newDTokenBalance.Mul(newDTokenBalance, totalDneroWei)
+// 	newDTokenBalance.Mul(newDTokenBalance, big.NewInt(RegularDTokenGenerationRateNumerator))
+// 	newDTokenBalance.Div(newDTokenBalance, big.NewInt(RegularDTokenGenerationRateDenominator))
 
-// 	if newDFuelBalance.Sign() <= 0 {
+// 	if newDTokenBalance.Sign() <= 0 {
 // 		// Underflow, no reward to add yet
 // 		return
 // 	}
 
-// 	newDFuelBalance.Add(newDFuelBalance, acc.Balance.DFuelWei)
+// 	newDTokenBalance.Add(newDTokenBalance, acc.Balance.DTokenWei)
 
-// 	if !newDFuelBalance.IsInt64() {
-// 		panic("Account DFuel balance will overflow")
+// 	if !newDTokenBalance.IsInt64() {
+// 		panic("Account DToken balance will overflow")
 // 	}
 
 // 	newBalance := Coins{
 // 		DneroWei: acc.Balance.DneroWei,
-// 		DFuelWei: newDFuelBalance,
+// 		DTokenWei: newDTokenBalance,
 // 	}
 // 	acc.Balance = newBalance
 // 	acc.LastUpdatedBlockHeight = currentBlockHeight

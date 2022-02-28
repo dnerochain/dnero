@@ -28,6 +28,7 @@ func NewSplitRuleTxExecutor(state *st.LedgerState) *SplitRuleTxExecutor {
 }
 
 func (exec *SplitRuleTxExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
+	blockHeight := view.Height() + 1 // the view points to the parent of the current block
 	tx := transaction.(*types.SplitRuleTx)
 
 	res := tx.Initiator.ValidateBasic()
@@ -43,14 +44,14 @@ func (exec *SplitRuleTxExecutor) sanityCheck(chainID string, view *st.StoreView,
 
 	// Validate inputs and outputs, advanced
 	signBytes := tx.SignBytes(chainID)
-	res = validateInputAdvanced(initiatorAccount, signBytes, tx.Initiator)
+	res = validateInputAdvanced(initiatorAccount, signBytes, tx.Initiator, blockHeight)
 	if res.IsError() {
 		return res
 	}
 
-	if !sanityCheckForFee(tx.Fee) {
-		return result.Error("Insufficient fee. Transaction fee needs to be at least %v DFuelWei",
-			types.MinimumTransactionFeeDFuelWei).WithErrorCode(result.CodeInvalidFee)
+	if minTxFee, success := sanityCheckForFee(tx.Fee, blockHeight); !success {
+		return result.Error("Insufficient fee. Transaction fee needs to be at least %v DTokenWei",
+			minTxFee).WithErrorCode(result.CodeInvalidFee)
 	}
 
 	minimalBalance := tx.Fee
@@ -154,7 +155,7 @@ func (exec *SplitRuleTxExecutor) getTxInfo(transaction types.Tx) *core.TxInfo {
 func (exec *SplitRuleTxExecutor) calculateEffectiveGasPrice(transaction types.Tx) *big.Int {
 	tx := transaction.(*types.SplitRuleTx)
 	fee := tx.Fee
-	gas := new(big.Int).SetUint64(types.GasSplitRuleTx)
-	effectiveGasPrice := new(big.Int).Div(fee.DFuelWei, gas)
+	gas := new(big.Int).SetUint64(getRegularTxGas(exec.state))
+	effectiveGasPrice := new(big.Int).Div(fee.DTokenWei, gas)
 	return effectiveGasPrice
 }
