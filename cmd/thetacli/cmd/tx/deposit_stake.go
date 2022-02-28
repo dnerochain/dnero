@@ -70,7 +70,7 @@ func doDepositStakeCmd(cmd *cobra.Command, args []string) {
 		Sequence: uint64(seqFlag),
 	}
 
-	depositStakeTx := &types.DepositStakeTxV2{
+	depositStakeTx := &types.DepositStakeTxV1{
 		Fee: types.Coins{
 			DneroWei: new(big.Int).SetUint64(0),
 			DTokenWei: fee,
