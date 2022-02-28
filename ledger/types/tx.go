@@ -882,7 +882,7 @@ func (tx *DepositStakeTx) String() string {
 		tx.Source.Address, tx.Holder.Address, tx.Source.Coins.DneroWei, tx.Purpose)
 }
 
-type DepositStakeTxV2 struct {
+type DepositStakeTxV1 struct {
 	Fee     Coins    `json:"fee"`     // Fee
 	Source  TxInput  `json:"source"`  // source staker account
 	Holder  TxOutput `json:"holder"`  // stake holder account
@@ -893,9 +893,9 @@ type DepositStakeTxV2 struct {
 	HolderSig *crypto.Signature `rlp:"nil"`
 }
 
-func (_ *DepositStakeTxV2) AssertIsTx() {}
+func (_ *DepositStakeTxV1) AssertIsTx() {}
 
-func (tx *DepositStakeTxV2) SignBytes(chainID string) []byte {
+func (tx *DepositStakeTxV1) SignBytes(chainID string) []byte {
 	var txBytes []byte
 	sig := tx.Source.Signature
 	tx.Source.Signature = nil
@@ -921,7 +921,7 @@ func (tx *DepositStakeTxV2) SignBytes(chainID string) []byte {
 	return signBytes
 }
 
-func (tx *DepositStakeTxV2) SetSignature(addr common.Address, sig *crypto.Signature) bool {
+func (tx *DepositStakeTxV1) SetSignature(addr common.Address, sig *crypto.Signature) bool {
 	if tx.Source.Address == addr {
 		tx.Source.Signature = sig
 		return true
@@ -929,8 +929,8 @@ func (tx *DepositStakeTxV2) SetSignature(addr common.Address, sig *crypto.Signat
 	return false
 }
 
-func (tx *DepositStakeTxV2) String() string {
-	return fmt.Sprintf("DepositStakeTxV2{%v -> %v, stake: %v, purpose: %v, BlsPubkey: %v, BlsPop: %v}",
+func (tx *DepositStakeTxV1) String() string {
+	return fmt.Sprintf("DepositStakeTxV1{%v -> %v, stake: %v, purpose: %v, BlsPubkey: %v, BlsPop: %v}",
 		tx.Source.Address, tx.Holder.Address, tx.Source.Coins.DneroWei, tx.Purpose, tx.BlsPubkey, tx.BlsPop)
 }
 

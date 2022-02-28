@@ -385,7 +385,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	txFee := getMinimumTxFee()
 	depositSourcePrivAcc := srcPrivAccs[3]
 	depoistHolderPrivAcc := srcPrivAccs[4]
-	depositStakeTx := &types.DepositStakeTxV2{
+	depositStakeTx := &types.DepositStakeTxV1{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
@@ -463,7 +463,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	es.addBlock(b1)
 
 	// ----------- BLS Pubkey/Pop in existing guardian's deposit should be ignored -------- //
-	depositStakeTx = &types.DepositStakeTxV2{
+	depositStakeTx = &types.DepositStakeTxV1{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
@@ -495,7 +495,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	es.addBlock(b2)
 
 	// ----------- Guardian's deposit can omit BLS Pubkey/Pop -------- //
-	depositStakeTx = &types.DepositStakeTxV2{
+	depositStakeTx = &types.DepositStakeTxV1{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,

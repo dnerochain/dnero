@@ -107,7 +107,7 @@ func TxFromBytes(raw []byte) (Tx, error) {
 		err = s.Decode(data)
 		return data, err
 	} else if txType == TxDepositStakeV2 {
-		data := &DepositStakeTxV2{}
+		data := &DepositStakeTxV1{}
 		err = s.Decode(data)
 		return data, err
 	} else if txType == TxStakeRewardDistribution {
@@ -143,7 +143,7 @@ func TxToBytes(t Tx) ([]byte, error) {
 		txType = TxDepositStake
 	case *WithdrawStakeTx:
 		txType = TxWithdrawStake
-	case *DepositStakeTxV2:
+	case *DepositStakeTxV1:
 		txType = TxDepositStakeV2
 	case *StakeRewardDistributionTx:
 		txType = TxStakeRewardDistribution

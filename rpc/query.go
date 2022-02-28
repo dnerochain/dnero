@@ -292,7 +292,7 @@ const (
 	TxTypeSmartContract
 	TxTypeDepositStake
 	TxTypeWithdrawStake
-	TxTypeDepositStakeTxV2
+	TxTypeDepositStakeTxV1
 	TxTypeStakeRewardDistributionTx
 )
 
@@ -1074,8 +1074,8 @@ func getTxType(tx types.Tx) byte {
 		t = TxTypeDepositStake
 	case *types.WithdrawStakeTx:
 		t = TxTypeWithdrawStake
-	case *types.DepositStakeTxV2:
-		t = TxTypeDepositStakeTxV2
+	case *types.DepositStakeTxV1:
+		t = TxTypeDepositStakeTxV1
 	case *types.StakeRewardDistributionTx:
 		t = TxTypeStakeRewardDistributionTx
 	}
