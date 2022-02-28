@@ -38,12 +38,12 @@ type StakeDeposit struct {
 //
 // Example:
 // pushd $DNERO_HOME/integration/privatenet/node
-// generate_genesis -chainID=privatenet -erc20snapshot=./data/genesis_dnero_erc20_snapshot.json -stake_deposit=./data/genesis_stake_deposit.json -genesis=./genesis
+// generate_genesis -chainID=privatenet -allocationsnapshot=./data/genesis_dnero_allocation_snapshot.json -stake_deposit=./data/genesis_stake_deposit.json -genesis=./genesis
 //
 func main() {
-	chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath := parseArguments()
+	chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath := parseArguments()
 
-	sv, metadata, err := generateGenesisSnapshot(chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath)
+	sv, metadata, err := generateGenesisSnapshot(chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to generate genesis snapshot: %v", err))
 	}
@@ -70,15 +70,15 @@ func main() {
 	fmt.Println("")
 }
 
-func parseArguments() (chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath string) {
+func parseArguments() (chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath, genesisSnapshotFilePath string) {
 	chainIDPtr := flag.String("chainID", "local_chain", "the ID of the chain")
-	erc20SnapshotJSONFilePathPtr := flag.String("erc20snapshot", "./dnero_erc20_snapshot.json", "the json file contain the ERC20 balance snapshot")
+	allocationSnapshotJSONFilePathPtr := flag.String("allocationsnapshot", "./dnero_allocation_snapshot.json", "the json file contain the ALLOCATION balance snapshot")
 	stakeDepositFilePathPtr := flag.String("stake_deposit", "./stake_deposit.json", "the initial stake deposits")
 	genesisSnapshotFilePathPtr := flag.String("genesis", "./genesis", "the genesis snapshot")
 	flag.Parse()
 
 	chainID = *chainIDPtr
-	erc20SnapshotJSONFilePath = *erc20SnapshotJSONFilePathPtr
+	allocationSnapshotJSONFilePath = *allocationSnapshotJSONFilePathPtr
 	stakeDepositFilePath = *stakeDepositFilePathPtr
 	genesisSnapshotFilePath = *genesisSnapshotFilePathPtr
 
@@ -86,11 +86,11 @@ func parseArguments() (chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath,
 }
 
 // generateGenesisSnapshot generates the genesis snapshot.
-func generateGenesisSnapshot(chainID, erc20SnapshotJSONFilePath, stakeDepositFilePath string) (*state.StoreView, *core.SnapshotMetadata, error) {
+func generateGenesisSnapshot(chainID, allocationSnapshotJSONFilePath, stakeDepositFilePath string) (*state.StoreView, *core.SnapshotMetadata, error) {
 	metadata := &core.SnapshotMetadata{}
 	genesisHeight := core.GenesisBlockHeight
 
-	sv := loadInitialBalances(erc20SnapshotJSONFilePath)
+	sv := loadInitialBalances(allocationSnapshotJSONFilePath)
 	performInitialStakeDeposit(stakeDepositFilePath, genesisHeight, sv)
 
 	stateHash := sv.Hash()
@@ -112,24 +112,24 @@ func generateGenesisSnapshot(chainID, erc20SnapshotJSONFilePath, stakeDepositFil
 	return sv, metadata, nil
 }
 
-func loadInitialBalances(erc20SnapshotJSONFilePath string) *state.StoreView {
+func loadInitialBalances(allocationSnapshotJSONFilePath string) *state.StoreView {
 	initDTokenToDneroRatio := new(big.Int).SetUint64(5)
 	sv := state.NewStoreView(0, common.Hash{}, backend.NewMemDatabase())
 
-	erc20SnapshotJSONFile, err := os.Open(erc20SnapshotJSONFilePath)
+	allocationSnapshotJSONFile, err := os.Open(allocationSnapshotJSONFilePath)
 	if err != nil {
-		panic(fmt.Sprintf("failed to open the ERC20 balance snapshot: %v", err))
+		panic(fmt.Sprintf("failed to open the ALLOCATION balance snapshot: %v", err))
 	}
-	defer erc20SnapshotJSONFile.Close()
+	defer allocationSnapshotJSONFile.Close()
 
-	var erc20BalanceMap map[string]string
-	erc20BalanceMapByteValue, err := ioutil.ReadAll(erc20SnapshotJSONFile)
+	var allocationBalanceMap map[string]string
+	allocationBalanceMapByteValue, err := ioutil.ReadAll(allocationSnapshotJSONFile)
 	if err != nil {
-		panic(fmt.Sprintf("failed to read the ERC20 balance snapshot: %v", err))
+		panic(fmt.Sprintf("failed to read the ALLOCATION balance snapshot: %v", err))
 	}
 
-	json.Unmarshal(erc20BalanceMapByteValue, &erc20BalanceMap)
-	for key, val := range erc20BalanceMap {
+	json.Unmarshal(allocationBalanceMapByteValue, &allocationBalanceMap)
+	for key, val := range allocationBalanceMap {
 		if !common.IsHexAddress(key) {
 			panic(fmt.Sprintf("Invalid address: %v", key))
 		}
