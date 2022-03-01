@@ -33,7 +33,7 @@ var startDaemonCmd = &cobra.Command{
 }
 
 func init() {
-	startDaemonCmd.Flags().StringVar(&portFlag, "port", "16889", "Port to run the DneroCli Daemon")
+	startDaemonCmd.Flags().StringVar(&portFlag, "port", "15611", "Port to run the DneroCli Daemon")
 }
 
 type DneroCliDaemon struct {
