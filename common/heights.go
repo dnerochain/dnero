@@ -1,36 +1,36 @@
 package common
 
 // HeightEnableValidatorReward specifies the minimal block height to enable the validator DTOKEN reward
-const HeightEnableValidatorReward uint64 = 4164982 // approximate time: 2pm January 14th, 2020 PST
+const HeightEnableValidatorReward uint64 = 10001 // block #10001
 
 // HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1.0 feature.
-const HeightEnableDneroV1 uint64 = 5877350 // approximate time: 12pm May 27th, 2020 PDT
+const HeightEnableDneroV1 uint64 = 20001 // block #20001
 
-//Clean
+//DEL
 // HeightLowerGNStakeThresholdTo1000 specifies the minimal block height to lower the GN Stake Threshold to 1,000 DNERO
 //const HeightLowerGNStakeThresholdTo1000 uint64 = ### // StakeDeposit Fork Removed
-//Clean
+//DEL
 
 // HeightEnableSmartContract specifies the minimal block height to enable the Turing-complete smart contract support
-const HeightEnableSmartContract uint64 = 8411427 // approximate time: 12pm Dec 10th, 2020 PST
+const HeightEnableSmartContract uint64 = 50001 // block #50001
 
 // HeightSampleStakingReward specifies the block heigth to enable sampling of staking reward
-const HeightSampleStakingReward uint64 = 9497418 // approximate time: 7pm Mar 10th, 2021 PST
+const HeightSampleStakingReward uint64 = 100001 // block #100001
 
-// HeightJune2021FeeAdjustment specifies the block heigth to enable transaction fee burning adjustment
-const HeightJune2021FeeAdjustment uint64 = 10709540 // approximate time: 12pm June 11, 2021 PT
+// HeightNewFeeAdjustment specifies the block heigth to enable transaction fee burning adjustment
+const HeightNewFeeAdjustment uint64 = 120001 // block #120001
 
 // HeightEnableDneroV2 specifies the minimal block height to enable the DneroV2.0 feature.
-const HeightEnableDneroV2 uint64 = 10968061 // approximate time: 12pm June 30, 2021 PT
+const HeightEnableDneroV2 uint64 = 200001 // block #200001
 
 // HeightRPCCompatibility specifies the block height to enable Ethereum compatible RPC support
-const HeightRPCCompatibility uint64 = 11354820 // approximate time: 12pm July 30, 2021 PT
+const HeightRPCCompatibility uint64 = 210001 // block #210001
 
 // HeightTxWrapperExtension specifies the block height to extend the Tx Wrapper
-const HeightTxWrapperExtension uint64 = 12749952
+const HeightTxWrapperExtension uint64 = 220001 // block #220001
 
 // HeightSupportDneroTokenInSmartContract specifies the block height to support Dnero in smart contracts
-const HeightSupportDneroTokenInSmartContract uint64 = 13123789 // approximate time: 5pm Dec 4, 2021 PT
+const HeightSupportDneroTokenInSmartContract uint64 = 250001 // block #250001
 
 // CheckpointInterval defines the interval between checkpoints.
 const CheckpointInterval = int64(100)
