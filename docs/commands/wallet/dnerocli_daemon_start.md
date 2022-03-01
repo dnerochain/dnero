@@ -13,14 +13,14 @@ dnerocli daemon start [flags]
 ### Examples
 
 ```
-dnerocli daemon start --port=16889
+dnerocli daemon start --port=15611
 ```
 
 ### Options
 
 ```
   -h, --help          help for start
-      --port string   Port to run the DneroCli Daemon (default "16889")
+      --port string   Port to run the DneroCli Daemon (default "15611")
 ```
 
 ### Options inherited from parent commands
