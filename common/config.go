@@ -151,9 +151,12 @@ const (
 
 // InitialConfig is the default configuration produced by init command.
 const InitialConfig = `# Dnero configuration
+//p2p: //DEL
+  //port: 5000
+  //seeds: 127.0.0.1:6000,127.0.0.1:7000
 p2p:
-  port: 5000
-  seeds: 127.0.0.1:6000,127.0.0.1:7000
+  port: 6000
+  seeds: 127.0.0.1:7000,127.0.0.1:8000
 `
 
 func init() {
@@ -182,8 +185,9 @@ func init() {
 	viper.SetDefault(CfgRPCEnabled, false)
 	viper.SetDefault(CfgP2PMessageQueueSize, 512)
 	viper.SetDefault(CfgP2PName, "Anonymous")
-	viper.SetDefault(CfgP2PPort, 50001)
-	viper.SetDefault(CfgP2PSeeds, "")
+	//viper.SetDefault(CfgP2PPort, 50001)//DEL
+	viper.SetDefault(CfgP2PPort, 61000)
+	viper.SetDefault(CfgP2PSeeds, "") //TODO: Hardcode main seeds
 	viper.SetDefault(CfgP2PSeedPeerOnlyOutbound, false)
 	//viper.SetDefault(CfgP2POpt, P2POptLibp2p) // FIXME: this for some reason doesn't work
 	viper.SetDefault(CfgP2POpt, 0)
@@ -202,7 +206,8 @@ func init() {
 	viper.SetDefault(CfgP2PMaxConnections, 2048)
 
 	viper.SetDefault(CfgRPCAddress, "0.0.0.0")
-	viper.SetDefault(CfgRPCPort, "16888")
+	//viper.SetDefault(CfgRPCPort, "16888")//DEL
+	viper.SetDefault(CfgRPCPort, "15511")
 	viper.SetDefault(CfgRPCMaxConnections, 200)
 	viper.SetDefault(CfgRPCTimeoutSecs, 60)
 
@@ -210,8 +215,10 @@ func init() {
 	viper.SetDefault(CfgLogPrintSelfID, false)
 
 	viper.SetDefault(CfgGuardianRoundLength, 30)
-
-	viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org")
+	
+	viper.SetDefault(CfgMetricsServer, "guardian-metrics.thetatoken.org")//DEL
+	//TODO: Setup Dnero own Metrics Server
+	//viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org")
 
 	viper.SetDefault(CfgProfEnabled, false)
 	viper.SetDefault(CfgForceGCEnabled, true)
