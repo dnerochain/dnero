@@ -296,7 +296,7 @@ type bn256Add struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *bn256Add) RequiredGas(input []byte, blockHeight uint64) uint64 {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return params.Bn256AddGas
 	}
 	return params.Bn256AddGasIstanbul
@@ -321,7 +321,7 @@ type bn256ScalarMul struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *bn256ScalarMul) RequiredGas(input []byte, blockHeight uint64) uint64 {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return params.Bn256ScalarMulGas
 	}
 
@@ -354,7 +354,7 @@ type bn256Pairing struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *bn256Pairing) RequiredGas(input []byte, blockHeight uint64) uint64 {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return params.Bn256PairingBaseGas + uint64(len(input)/192)*params.Bn256PairingPerPointGas
 	}
 

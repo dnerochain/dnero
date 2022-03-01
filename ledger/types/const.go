@@ -93,7 +93,7 @@ const (
 )
 
 func GetMinimumGasPrice(blockHeight uint64) *big.Int {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return new(big.Int).SetUint64(MinimumGasPrice)
 	}
 
@@ -101,7 +101,7 @@ func GetMinimumGasPrice(blockHeight uint64) *big.Int {
 }
 
 func GetMaxGasLimit(blockHeight uint64) *big.Int {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return new(big.Int).SetUint64(MaximumTxGasLimit)
 	}
 
@@ -109,7 +109,7 @@ func GetMaxGasLimit(blockHeight uint64) *big.Int {
 }
 
 func GetMinimumTransactionFeeDTokenWei(blockHeight uint64) *big.Int {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWei)
 	}
 
@@ -118,7 +118,7 @@ func GetMinimumTransactionFeeDTokenWei(blockHeight uint64) *big.Int {
 
 // Special handling for many-to-many SendTx
 func GetSendTxMinimumTransactionFeeDTokenWei(numAccountsAffected uint64, blockHeight uint64) *big.Int {
-	if blockHeight < common.HeightJune2021FeeAdjustment {
+	if blockHeight < common.HeightNewFeeAdjustment {
 		return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWei) // backward compatiblity
 	}
 
