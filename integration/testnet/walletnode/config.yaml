@@ -4,7 +4,7 @@ genesis:
 storage:
   statePruningRetainedBlocks: 2048
 p2p:
-  port: 16000
+  port: 51000
   seeds: 54.219.137.110:15872
 rpc:
   enabled: true
