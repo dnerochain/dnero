@@ -71,4 +71,8 @@ replace github.com/dnerochain/dnero/rpc/lib/rpc-codec/jsonrpc2 v0.0.0 => ./rpc/l
 
 replace github.com/dnerochain/dnero/common v0.0.0 => ./common
 
+replace github.com/codegangsta/cli => ./deps/urfave/cli
+
+replace github.com/herumi/bls-eth-go-binary v0.0.0-20200107021104-147ed25f233e => ./deps/herumi/bls-eth-go-binary
+
 go 1.13
