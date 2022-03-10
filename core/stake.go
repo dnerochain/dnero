@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	StakeForValidator     uint8 = 0
-	StakeForGuardian      uint8 = 1
-	StakeForEliteEdgeNode uint8 = 2
+	StakeForValidator uint8 = 0
+	StakeForGuardian  uint8 = 1
 
 	ReturnLockingPeriod uint64 = 28800      // number of blocks, approximately 2 days with 6 second block time
 	InvalidReturnHeight uint64 = ^uint64(0) // max uint64
@@ -30,14 +29,13 @@ func init() {
 //
 
 type Stake struct {
-	Holder       common.Address `rlp:"-"` // Keep reference to holder in memory to process split
 	Source       common.Address
 	Amount       *big.Int
 	Withdrawn    bool
 	ReturnHeight uint64
 }
 
-func NewStake(source common.Address, amount *big.Int) *Stake {
+func newStake(source common.Address, amount *big.Int) *Stake {
 	return &Stake{
 		Source:       source,
 		Amount:       amount,
@@ -99,7 +97,7 @@ type StakeHolder struct {
 	Stakes []*Stake
 }
 
-func NewStakeHolder(holder common.Address, stakes []*Stake) *StakeHolder {
+func newStakeHolder(holder common.Address, stakes []*Stake) *StakeHolder {
 	return &StakeHolder{
 		Holder: holder,
 		Stakes: stakes,
@@ -132,25 +130,25 @@ func (sh *StakeHolder) depositStake(source common.Address, amount *big.Int) erro
 		}
 	}
 
-	newStake := NewStake(source, amount)
+	newStake := newStake(source, amount)
 	sh.Stakes = append(sh.Stakes, newStake)
 
 	return nil
 }
 
-func (sh *StakeHolder) withdrawStake(source common.Address, currentHeight uint64) (*Stake, error) {
+func (sh *StakeHolder) withdrawStake(source common.Address, currentHeight uint64) error {
 	for _, stake := range sh.Stakes {
 		if stake.Source == source {
 			if stake.Withdrawn {
-				return nil, fmt.Errorf("Already withdrawn, cannot withdraw again for source: %v", source)
+				return fmt.Errorf("Already withdrawn, cannot withdraw again for source: %v", source)
 			}
 			stake.Withdrawn = true
 			stake.ReturnHeight = currentHeight + ReturnLockingPeriod
-			return stake, nil
+			return nil
 		}
 	}
 
-	return nil, fmt.Errorf("Cannot withdraw, no matched stake source address found: %v", source)
+	return fmt.Errorf("Cannot withdraw, no matched stake source address found: %v", source)
 }
 
 func (sh *StakeHolder) returnStake(source common.Address, currentHeight uint64) (*Stake, error) {

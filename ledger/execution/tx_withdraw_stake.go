@@ -7,7 +7,6 @@ import (
 	"github.com/dnerochain/dnero/common"
 	"github.com/dnerochain/dnero/common/result"
 	"github.com/dnerochain/dnero/core"
-	"github.com/dnerochain/dnero/ledger/state"
 	st "github.com/dnerochain/dnero/ledger/state"
 	"github.com/dnerochain/dnero/ledger/types"
 )
@@ -29,7 +28,6 @@ func NewWithdrawStakeExecutor(state *st.LedgerState) *WithdrawStakeExecutor {
 }
 
 func (exec *WithdrawStakeExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
-	blockHeight := view.Height() + 1 // the view points to the parent of the current block
 	tx := transaction.(*types.WithdrawStakeTx)
 
 	res := tx.Source.ValidateBasic()
@@ -43,18 +41,19 @@ func (exec *WithdrawStakeExecutor) sanityCheck(chainID string, view *st.StoreVie
 	}
 
 	signBytes := tx.SignBytes(chainID)
-	res = validateInputAdvanced(sourceAccount, signBytes, tx.Source, blockHeight)
+	res = validateInputAdvanced(sourceAccount, signBytes, tx.Source)
 	if res.IsError() {
 		logger.Debugf(fmt.Sprintf("validateSourceAdvanced failed on %v: %v", tx.Source.Address.Hex(), res))
 		return res
 	}
 
+	blockHeight := view.Height() + 1 // the view points to the parent of the current block
 	if minTxFee, success := sanityCheckForFee(tx.Fee, blockHeight); !success {
 		return result.Error("Insufficient fee. Transaction fee needs to be at least %v DTokenWei",
 			minTxFee).WithErrorCode(result.CodeInvalidFee)
 	}
 
-	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian || tx.Purpose == core.StakeForEliteEdgeNode) {
+	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian) {
 		return result.Error("Invalid stake purpose!").
 			WithErrorCode(result.CodeInvalidStakePurpose)
 	}
@@ -103,14 +102,6 @@ func (exec *WithdrawStakeExecutor) process(chainID string, view *st.StoreView, t
 			return common.Hash{}, result.Error("Failed to withdraw stake, err: %v", err)
 		}
 		view.UpdateGuardianCandidatePool(gcp)
-	} else if tx.Purpose == core.StakeForEliteEdgeNode {
-		eenp := state.NewEliteEdgeNodePool(view, false)
-		currentHeight := exec.state.Height()
-		withdrawnStake, err := eenp.WithdrawStake(sourceAddress, holderAddress, currentHeight)
-		if err != nil || withdrawnStake == nil {
-			return common.Hash{}, result.Error("Failed to withdraw stake, err: %v", err)
-		}
-		updateEliteEdgeNodeStakeReturns(view, holderAddress, *withdrawnStake)
 	} else {
 		return common.Hash{}, result.Error("Invalid staking purpose").WithErrorCode(result.CodeInvalidStakePurpose)
 	}
@@ -148,14 +139,4 @@ func (exec *WithdrawStakeExecutor) calculateEffectiveGasPrice(transaction types.
 	gas := new(big.Int).SetUint64(getRegularTxGas(exec.state))
 	effectiveGasPrice := new(big.Int).Div(fee.DTokenWei, gas)
 	return effectiveGasPrice
-}
-
-func updateEliteEdgeNodeStakeReturns(view *st.StoreView, eenAddress common.Address, withdrawnStake core.Stake) {
-	returnHeight := withdrawnStake.ReturnHeight
-	stakesToBeReturned := view.GetEliteEdgeNodeStakeReturns(returnHeight)
-	stakesToBeReturned = append(stakesToBeReturned, state.StakeWithHolder{
-		Holder: eenAddress,
-		Stake:  withdrawnStake,
-	})
-	view.SetEliteEdgeNodeStakeReturns(returnHeight, stakesToBeReturned)
 }

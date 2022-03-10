@@ -3,10 +3,9 @@ package backup
 import "github.com/spf13/cobra"
 
 var (
-	heightFlag  uint64
-	versionFlag uint64
-	hashFlag    string
-	configFlag  string
+	heightFlag uint64
+	hashFlag   string
+	configFlag string
 )
 
 // BackupCmd represents the backup command

@@ -28,7 +28,6 @@ func NewReserveFundTxExecutor(state *st.LedgerState) *ReserveFundTxExecutor {
 }
 
 func (exec *ReserveFundTxExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
-	blockHeight := view.Height() + 1 // the view points to the parent of the current block
 	tx := transaction.(*types.ReserveFundTx)
 
 	// Validate source, basic
@@ -45,7 +44,7 @@ func (exec *ReserveFundTxExecutor) sanityCheck(chainID string, view *st.StoreVie
 
 	// Validate input, advanced
 	signBytes := tx.SignBytes(chainID)
-	res = validateInputAdvanced(sourceAccount, signBytes, tx.Source, blockHeight)
+	res = validateInputAdvanced(sourceAccount, signBytes, tx.Source)
 	if res.IsError() {
 		logger.Debugf(fmt.Sprintf("validateSourceAdvanced failed on %v: %v", tx.Source.Address.Hex(), res))
 		return res
@@ -63,6 +62,7 @@ func (exec *ReserveFundTxExecutor) sanityCheck(chainID string, view *st.StoreVie
 			WithErrorCode(result.CodeInvalidFundToReserve)
 	}
 
+	blockHeight := view.Height() + 1 // the view points to the parent of the current block
 	if minTxFee, success := sanityCheckForFee(tx.Fee, blockHeight); !success {
 		return result.Error("Insufficient fee. Transaction fee needs to be at least %v DTokenWei",
 			minTxFee).WithErrorCode(result.CodeInvalidFee)

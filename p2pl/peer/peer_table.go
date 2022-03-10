@@ -2,10 +2,10 @@ package peer
 
 import (
 	"math/rand"
+	"sync"
+	"strings"
 	"path"
 	"path/filepath"
-	"strings"
-	"sync"
 
 	pr "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/dnerochain/dnero/common"
@@ -42,6 +42,8 @@ type PeerTable struct {
 
 	db *leveldb.DB // peerTable persistence for restart
 }
+
+
 
 // CreatePeerTable creates an instance of the PeerTable
 func CreatePeerTable() PeerTable {
@@ -137,8 +139,7 @@ func (pt *PeerTable) PeerExists(peerID pr.ID) bool {
 }
 
 // GetAllPeers returns all the peers
-func (pt *PeerTable) GetAllPeers(skipEdgeNode bool) *([]*Peer) {
-	// TODO: support skipEdgeNode
+func (pt *PeerTable) GetAllPeers() *([]*Peer) {
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
 
@@ -189,7 +190,7 @@ func (pt *PeerTable) persistPeers() {
 	}
 
 	peerAddrInfos := make([]string, numInDB)
-	dbPeers := pt.peers[numPeers-numInDB:]
+	dbPeers := pt.peers[numPeers - numInDB:]
 	for i, p := range dbPeers {
 		json, err := p.addrInfo.MarshalJSON()
 		if err == nil {
@@ -241,8 +242,7 @@ func (pt *PeerTable) GetSelection() (peerIDAddrs []pr.ID) {
 }
 
 // GetTotalNumPeers returns the total number of peers in the PeerTable
-func (pt *PeerTable) GetTotalNumPeers(skipEdgeNode bool) uint {
-	// TODO: support skipEdgeNode
+func (pt *PeerTable) GetTotalNumPeers() uint {
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
 

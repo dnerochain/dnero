@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 	"sync"
 	"time"
 
@@ -37,8 +36,8 @@ type Peer struct {
 	netAddress   *nu.NetAddress
 
 	nodeInfo p2ptypes.NodeInfo // information of the blockchain node of the peer
-	nodeType cmn.NodeType
-	config   PeerConfig
+
+	config PeerConfig
 
 	// Life cycle
 	wg      *sync.WaitGroup
@@ -135,33 +134,27 @@ func (peer *Peer) Handshake(sourceNodeInfo *p2ptypes.NodeInfo) error {
 		},
 	)
 	if sendError != nil {
-		logger.Warnf("Error during handshake/send: %v", sendError)
+		logger.Errorf("Error during handshake/send: %v", sendError)
 		return sendError
 	}
 	if recvError != nil {
-		logger.Warnf("Error during handshake/recv: %v", recvError)
+		logger.Errorf("Error during handshake/recv: %v", recvError)
 		return recvError
 	}
 	netconn := peer.connection.GetNetconn()
 	targetNodePubKey, err := crypto.PublicKeyFromBytes(targetPeerNodeInfo.PubKeyBytes)
 	if err != nil {
-		logger.Warnf("Error during handshake/recv: %v", err)
+		logger.Errorf("Error during handshake/recv: %v", err)
 		return err
 	}
 	targetPeerNodeInfo.PubKey = targetNodePubKey
 	peer.nodeInfo = targetPeerNodeInfo
 
 	// Forward compatibility.
-	localChainID := viper.GetString(cmn.CfgGenesisChainID)
-	selfNodeType := viper.GetInt(cmn.CfgNodeType)
-	var peerType int
+	localChainID := viper.GetString(common.CfgGenesisChainID)
 	cmn.Parallel(
 		func() {
 			sendError = rlp.Encode(peer.connection.GetBufNetconn(), localChainID)
-			if sendError != nil {
-				return
-			}
-			sendError = rlp.Encode(peer.connection.GetBufNetconn(), strconv.Itoa(selfNodeType))
 			if sendError != nil {
 				return
 			}
@@ -178,25 +171,9 @@ func (peer *Peer) Handshake(sourceNodeInfo *p2ptypes.NodeInfo) error {
 			}
 			if msg != localChainID {
 				recvError = fmt.Errorf("ChainID mismatch: peer chainID: %v, local ChainID: %v", msg, localChainID)
-				//return
+				return
 			}
 			logger.Infof("Peer ChainID: %v", msg)
-
-			recvError = s.Decode(&msg)
-			if recvError != nil {
-				return
-			}
-			var convErr error
-			peerType, convErr = strconv.Atoi(msg)
-			if convErr != nil {
-				//recvError = fmt.Errorf("Cannot parse the peer type: %v", msg)
-
-				peerType = int(cmn.NodeTypeBlockchainNode)          // for backward compatibility, by default consider the peer as a blockchain node
-				logger.Warnf("Cannot parse the peer type: %v", msg) // for backward compatibility, just print a warning instead of setting the recvError
-				return
-			}
-			logger.Infof("Peer Type: %v", peerType)
-
 			for {
 				recvError = s.Decode(&msg)
 				if recvError != nil {
@@ -209,25 +186,23 @@ func (peer *Peer) Handshake(sourceNodeInfo *p2ptypes.NodeInfo) error {
 		},
 	)
 	if sendError != nil {
-		logger.Warnf("Error during handshake/send extra info: %v", sendError)
+		logger.Errorf("Error during handshake/send extra info: %v", sendError)
 		return sendError
 	}
 	if recvError != nil {
-		logger.Warnf("Error during handshake/recv extra info: %v", recvError)
+		logger.Errorf("Error during handshake/recv extra info: %v", recvError)
 		return recvError
 	}
-
-	peer.nodeType = common.NodeType(peerType)
 
 	remotePub, err := peer.connection.DoEncHandshake(
 		crypto.PrivKeyToECDSA(sourceNodeInfo.PrivKey), crypto.PubKeyToECDSA(targetNodePubKey))
 	if err != nil {
-		logger.Warnf("Error during handshake/key exchange: %v", err)
+		logger.Errorf("Error during handshake/key exchange: %v", err)
 		return err
 	} else {
 		if remotePub.Address() != targetNodePubKey.Address() {
 			err = fmt.Errorf("expected remote address: %v, actual address: %v", targetNodePubKey.Address(), remotePub.Address())
-			logger.Warnf("Error during handshake/key exchange: %v", err)
+			logger.Errorf("Error during handshake/key exchange: %v", err)
 			return err
 		}
 	}
@@ -288,11 +263,6 @@ func (peer *Peer) IsOutbound() bool {
 	return peer.isOutbound
 }
 
-// NodeType returns the node type of the peer
-func (peer *Peer) NodeType() cmn.NodeType {
-	return peer.nodeType
-}
-
 // SetSeed sets the isSeed for the given peer
 func (peer *Peer) SetSeed(isSeed bool) {
 	peer.isSeed = isSeed
@@ -338,7 +308,7 @@ func createPeer(netconn net.Conn, isOutbound bool,
 	peerConfig PeerConfig, connConfig cn.ConnectionConfig) *Peer {
 	connection := cn.CreateConnection(netconn, connConfig)
 	if connection == nil {
-		logger.Warnf("Failed to create connection")
+		logger.Errorf("Failed to create connection")
 		if netconn != nil {
 			netconn.Close()
 		}

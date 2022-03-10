@@ -109,7 +109,7 @@ func (et *execTest) reset() {
 		},
 	}
 	db := backend.NewMemDatabase()
-	ledgerState := st.NewLedgerState(chainID, db, nil)
+	ledgerState := st.NewLedgerState(chainID, db)
 	//ledgerState.ResetState(initHeight, initRootHash)
 	ledgerState.ResetState(initBlock)
 

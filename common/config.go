@@ -14,8 +14,6 @@ const (
 	// CfgKeyPath defines custom key path
 	CfgKeyPath = "key.path"
 
-	// CfgNodeType indicates the type of the node, e.g. blockchain node/edge node
-	CfgNodeType = "node.type"
 	// CfgForceValidateSnapshot defines wether validation of snapshot can be skipped
 	CfgForceValidateSnapshot = "snapshot.force_validate"
 
@@ -26,17 +24,13 @@ const (
 
 	// CfgConsensusMaxEpochLength defines the maxium length of an epoch.
 	CfgConsensusMaxEpochLength = "consensus.maxEpochLength"
-	// CfgConsensusMinBlockTime defines the minimal block interval (in seconds)
-	CfgConsensusMinBlockInterval = "consensus.minBlockInterval"
+	// CfgConsensusMinProposalWait defines the minimal interval between proposals.
+	CfgConsensusMinProposalWait = "consensus.minProposalWait"
 	// CfgConsensusMessageQueueSize defines the capacity of consensus message queue.
 	CfgConsensusMessageQueueSize = "consensus.messageQueueSize"
-	// CfgConsensusEdgeNodeVoteQueueSize defines the capacity of edge node vote message queue.
-	CfgConsensusEdgeNodeVoteQueueSize = "consensus.edgeNodeVoteQueueSize"
 	// CfgConsensusPassThroughGuardianVote defines the how guardian vote is handled.
 	CfgConsensusPassThroughGuardianVote = "consensus.passThroughGuardianVote"
 
-	// CfgStorageRollingEnabled indicates whether rolling is enabled
-	CfgStorageRollingEnabled = "storage.stateRollingEnabled"
 	// CfgStorageStatePruningEnabled indicates whether state pruning is enabled
 	CfgStorageStatePruningEnabled = "storage.statePruningEnabled"
 	// CfgStorageStatePruningInterval indicates the purning interval (in terms of blocks)
@@ -49,8 +43,6 @@ const (
 	CfgStorageLevelDBCacheSize = "storage.levelDBCacheSize"
 	// CfgStorageLevelDBHandles indicates Level DB handle count
 	CfgStorageLevelDBHandles = "storage.levelDBHandles"
-	// CfgStorageRollingInterval is the block interval that we start new db layer
-	CfgStorageRollingInterval = "storage.rollingInterval"
 
 	// CfgSyncMessageQueueSize defines the capacity of Sync Manager message queue.
 	CfgSyncMessageQueueSize = "sync.messageQueueSize"
@@ -73,13 +65,7 @@ const (
 	CfgP2PPort = "p2p.port"
 	// CfgP2PLPort sets the port used by P2P network.
 	CfgP2PLPort = "p2p.libp2pPort"
-	// CfgP2PIsBootstrapNode specifies whether the node acts as a boostrap node
-	CfgP2PIsBootstrapNode = "p2p.isBootstrapNode"
-	// CfgP2PBootstrapNodePurgePeerInterval specifies the interval (in seconds) for a bootstrap node to purge all non-seed peers
-	//CfgP2PBootstrapNodePurgePeerInterval = "p2p.bootstrapNodePurgePeerInterval"
-	// CfgP2PBootstrapSeeds sets the boostrap peers.
-	CfgP2PBootstrapSeeds = "p2p.bootstrapSeeds"
-	// CfgP2PSeeds sets the seed peers.
+	// CfgP2PSeeds sets the boostrap peers.
 	CfgP2PSeeds = "p2p.seeds"
 	// CfgLibP2PSeeds sets the boostrap peers in libp2p format.
 	CfgLibP2PSeeds = "p2p.libp2pSeeds"
@@ -139,9 +125,6 @@ const (
 
 	// CfgForceGCEnabled to enable force GC
 	CfgForceGCEnabled = "gc.enabled"
-
-	// CfgDebugLogSelectedEENPs to enable logging of selected eenps
-	CfgDebugLogSelectedEENPs = "debug.logSelectedEENPs"
 )
 
 // Starting block heights of features.
@@ -160,27 +143,23 @@ p2p:
 `
 
 func init() {
-	viper.SetDefault(CfgNodeType, 1) // 1: blockchain node, 2: edge node
 	viper.SetDefault(CfgForceValidateSnapshot, false)
 
 	viper.SetDefault(CfgConsensusMaxEpochLength, 20)
-	viper.SetDefault(CfgConsensusMinBlockInterval, 6)
+	viper.SetDefault(CfgConsensusMinProposalWait, 6)
 	viper.SetDefault(CfgConsensusMessageQueueSize, 512)
-	viper.SetDefault(CfgConsensusEdgeNodeVoteQueueSize, 100000)
 	viper.SetDefault(CfgConsensusPassThroughGuardianVote, false)
 
 	viper.SetDefault(CfgSyncMessageQueueSize, 512)
 	viper.SetDefault(CfgSyncDownloadByHash, false)
 	viper.SetDefault(CfgSyncDownloadByHeader, true)
 
-	viper.SetDefault(CfgStorageRollingEnabled, true)
 	viper.SetDefault(CfgStorageStatePruningEnabled, true)
 	viper.SetDefault(CfgStorageStatePruningInterval, 16)
 	viper.SetDefault(CfgStorageStatePruningRetainedBlocks, 2048)
 	viper.SetDefault(CfgStorageStatePruningSkipCheckpoints, true)
 	viper.SetDefault(CfgStorageLevelDBCacheSize, 256)
 	viper.SetDefault(CfgStorageLevelDBHandles, 16)
-	viper.SetDefault(CfgStorageRollingInterval, 14400) // approximately 1 days by default
 
 	viper.SetDefault(CfgRPCEnabled, false)
 	viper.SetDefault(CfgP2PMessageQueueSize, 512)
@@ -193,8 +172,6 @@ func init() {
 	viper.SetDefault(CfgP2POpt, 0)
 	viper.SetDefault(CfgP2PReuseStream, true)
 	viper.SetDefault(CfgP2PSeedPeerOnly, false)
-	viper.SetDefault(CfgP2PIsBootstrapNode, false)
-	//viper.SetDefault(CfgP2PBootstrapNodePurgePeerInterval, 1800) // 30 minutes
 	viper.SetDefault(CfgP2PMinNumPeers, 32)
 	//viper.SetDefault(CfgP2PMaxNumPeers, 256)
 	viper.SetDefault(CfgP2PMaxNumPeers, 64)
@@ -215,8 +192,7 @@ func init() {
 	viper.SetDefault(CfgLogPrintSelfID, false)
 
 	viper.SetDefault(CfgGuardianRoundLength, 30)
-	
-	viper.SetDefault(CfgMetricsServer, "guardian-metrics.thetatoken.org")//DEL
+
 	//TODO: Setup Dnero own Metrics Server
 	//viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org")
 

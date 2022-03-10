@@ -4,13 +4,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
-	"math/rand"
 	"strings"
 	"time"
-
-	"github.com/spf13/viper"
 
 	"github.com/dnerochain/dnero/blockchain"
 	"github.com/dnerochain/dnero/crypto/bls"
@@ -45,10 +41,9 @@ func (t *DneroRPCService) GetVersion(args *GetVersionArgs, result *GetVersionRes
 // ------------------------------- GetAccount -----------------------------------
 
 type GetAccountArgs struct {
-	Name    string            `json:"name"`
-	Address string            `json:"address"`
-	Height  common.JSONUint64 `json:"height"`
-	Preview bool              `json:"preview"` // preview the account balance from the ScreenedView
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Preview bool   `json:"preview"` // preview the account balance from the ScreenedView
 }
 
 type GetAccountResult struct {
@@ -62,57 +57,24 @@ func (t *DneroRPCService) GetAccount(args *GetAccountArgs, result *GetAccountRes
 	}
 	address := common.HexToAddress(args.Address)
 	result.Address = args.Address
-	height := uint64(args.Height)
 
-	if height == 0 { // get the latest
-		var ledgerState *state.StoreView
-		if args.Preview {
-			ledgerState, err = t.ledger.GetScreenedSnapshot()
-		} else {
-			ledgerState, err = t.ledger.GetFinalizedSnapshot()
-		}
-		if err != nil {
-			return err
-		}
-
-		account := ledgerState.GetAccount(address)
-		if account == nil {
-			return fmt.Errorf("Account with address %s is not found", address.Hex())
-		}
-		account.UpdateToHeight(ledgerState.Height())
-
-		result.Account = account
+	var ledgerState *state.StoreView
+	if args.Preview {
+		ledgerState, err = t.ledger.GetScreenedSnapshot()
 	} else {
-		blocks := t.chain.FindBlocksByHeight(height)
-		if len(blocks) == 0 {
-			result.Account = nil
-			return nil
-		}
-
-		deliveredView, err := t.ledger.GetDeliveredSnapshot()
-		if err != nil {
-			return err
-		}
-		db := deliveredView.GetDB()
-
-		for _, b := range blocks {
-			if b.Status.IsFinalized() {
-				stateRoot := b.StateHash
-				ledgerState := state.NewStoreView(height, stateRoot, db)
-				if ledgerState == nil { // might have been pruned
-					return fmt.Errorf("the account details for height %v is not available, it might have been pruned", height)
-				}
-				account := ledgerState.GetAccount(address)
-				if account == nil {
-					return fmt.Errorf("Account with address %v is not found", address.Hex())
-				}
-				result.Account = account
-				break
-			}
-		}
-
+		ledgerState, err = t.ledger.GetFinalizedSnapshot()
+	}
+	if err != nil {
+		return err
 	}
 
+	account := ledgerState.GetAccount(address)
+	if account == nil {
+		return fmt.Errorf("Account with address %s is not found", address.Hex())
+	}
+	account.UpdateToHeight(ledgerState.Height())
+
+	result.Account = account
 	return nil
 }
 
@@ -169,6 +131,7 @@ func (t *DneroRPCService) GetTransaction(args *GetTransactionArgs, result *GetTr
 		return errors.New("Transanction hash must be specified")
 	}
 	hash := common.HexToHash(args.Hash)
+	result.TxHash = hash
 
 	raw, block, found := t.chain.FindTxByHash(hash)
 	if !found {
@@ -200,15 +163,8 @@ func (t *DneroRPCService) GetTransaction(args *GetTransactionArgs, result *GetTr
 	result.Tx = tx
 	result.Type = getTxType(tx)
 
-	// args.Hash maybe an ETH tx hash, need to lookup the receipt using the hash of the corresponding native Smart contract Tx
-	canonicalTxHash := hash
-	if result.Type == TxTypeSmartContract {
-		canonicalTxHash = crypto.Keccak256Hash(raw)
-	}
-	result.TxHash = canonicalTxHash
-
 	// Add receipt
-	receipt, found := t.chain.FindTxReceiptByHash(canonicalTxHash)
+	receipt, found := t.chain.FindTxReceiptByHash(hash)
 	if found {
 		result.Receipt = receipt
 	}
@@ -234,8 +190,7 @@ func (t *DneroRPCService) GetPendingTransactions(args *GetPendingTransactionsArg
 // ------------------------------ GetBlock -----------------------------------
 
 type GetBlockArgs struct {
-	Hash               common.Hash `json:"hash"`
-	IncludeEthTxHashes bool        `json:"include_eth_tx_hashes"`
+	Hash common.Hash `json:"hash"`
 }
 
 type Tx struct {
@@ -245,14 +200,6 @@ type Tx struct {
 	Receipt  *blockchain.TxReceiptEntry `json:"receipt"`
 }
 
-type TxWithEthHash struct {
-	types.Tx  `json:"raw"`
-	Type      byte                       `json:"type"`
-	Hash      common.Hash                `json:"hash"`
-	EthTxHash common.Hash                `json:"eth_tx_hash"`
-	Receipt   *blockchain.TxReceiptEntry `json:"receipt"`
-}
-
 type GetBlockResult struct {
 	*GetBlockResultInner
 }
@@ -260,23 +207,22 @@ type GetBlockResult struct {
 type GetBlocksResult []*GetBlockResultInner
 
 type GetBlockResultInner struct {
-	ChainID            string                   `json:"chain_id"`
-	Epoch              common.JSONUint64        `json:"epoch"`
-	Height             common.JSONUint64        `json:"height"`
-	Parent             common.Hash              `json:"parent"`
-	TxHash             common.Hash              `json:"transactions_hash"`
-	StateHash          common.Hash              `json:"state_hash"`
-	Timestamp          *common.JSONBig          `json:"timestamp"`
-	Proposer           common.Address           `json:"proposer"`
-	HCC                core.CommitCertificate   `json:"hcc"`
-	GuardianVotes      *core.AggregatedVotes    `json:"guardian_votes"`
-	EliteEdgeNodeVotes *core.AggregatedEENVotes `json:"elite_edge_node_votes"`
+	ChainID       string                 `json:"chain_id"`
+	Epoch         common.JSONUint64      `json:"epoch"`
+	Height        common.JSONUint64      `json:"height"`
+	Parent        common.Hash            `json:"parent"`
+	TxHash        common.Hash            `json:"transactions_hash"`
+	StateHash     common.Hash            `json:"state_hash"`
+	Timestamp     *common.JSONBig        `json:"timestamp"`
+	Proposer      common.Address         `json:"proposer"`
+	HCC           core.CommitCertificate `json:"hcc"`
+	GuardianVotes *core.AggregatedVotes  `json:"guardian_votes"`
 
 	Children []common.Hash    `json:"children"`
 	Status   core.BlockStatus `json:"status"`
 
-	Hash common.Hash   `json:"hash"`
-	Txs  []interface{} `json:"transactions"` // for backward conpatibility, see function DneroRPCService.gatherTxs()
+	Hash common.Hash `json:"hash"`
+	Txs  []Tx        `json:"transactions"`
 }
 
 type TxType byte
@@ -293,7 +239,6 @@ const (
 	TxTypeDepositStake
 	TxTypeWithdrawStake
 	TxTypeDepositStakeTxV1
-	TxTypeStakeRewardDistributionTx
 )
 
 func (t *DneroRPCService) GetBlock(args *GetBlockArgs, result *GetBlockResult) (err error) {
@@ -322,25 +267,44 @@ func (t *DneroRPCService) GetBlock(args *GetBlockArgs, result *GetBlockResult) (
 
 	result.Hash = block.Hash()
 
-	t.gatherTxs(block, &result.Txs, args.IncludeEthTxHashes)
+	// Parse and fulfill Txs.
+	var tx types.Tx
+	for _, txBytes := range block.Txs {
+		tx, err = types.TxFromBytes(txBytes)
+		if err != nil {
+			return
+		}
+		hash := crypto.Keccak256Hash(txBytes)
 
+		tp := getTxType(tx)
+		txw := Tx{
+			Tx:   tx,
+			Hash: hash,
+			Type: tp,
+		}
+
+		receipt, found := t.chain.FindTxReceiptByHash(hash)
+		if found {
+			txw.Receipt = receipt
+		}
+
+		result.Txs = append(result.Txs, txw)
+	}
 	return
 }
 
 // ------------------------------ GetBlockByHeight -----------------------------------
 
 type GetBlockByHeightArgs struct {
-	Height             common.JSONUint64 `json:"height"`
-	IncludeEthTxHashes bool              `json:"include_eth_tx_hashes"`
+	Height common.JSONUint64 `json:"height"`
 }
 
 func (t *DneroRPCService) GetBlockByHeight(args *GetBlockByHeightArgs, result *GetBlockResult) (err error) {
-	// if args.Height == 0 {
-	// 	return errors.New("Block height must be specified")
-	// }
+	if args.Height == 0 {
+		return errors.New("Block height must be specified")
+	}
 
-	blockHeight := uint64(args.Height)
-	blocks := t.chain.FindBlocksByHeight(blockHeight)
+	blocks := t.chain.FindBlocksByHeight(uint64(args.Height))
 
 	var block *core.ExtendedBlock
 	for _, b := range blocks {
@@ -348,23 +312,6 @@ func (t *DneroRPCService) GetBlockByHeight(args *GetBlockByHeightArgs, result *G
 			block = b
 			break
 		}
-	}
-
-	if blockHeight == 0 && block == nil { // special handling for a node starting from a non-genesis snapshot
-		var genesisHash common.Hash
-		if t.consensus.Chain().ChainID == core.MainnetChainID {
-			genesisHash = common.HexToHash(core.MainnetGenesisBlockHash)
-		} else {
-			genesisHash = common.HexToHash(viper.GetString(common.CfgGenesisHash))
-		}
-
-		result.GetBlockResultInner = &GetBlockResultInner{}
-		result.ChainID = t.consensus.Chain().ChainID
-		result.Children = []common.Hash{}
-		result.Status = core.BlockStatusDirectlyFinalized
-		result.Timestamp = (*common.JSONBig)(big.NewInt(0))
-		result.Hash = genesisHash
-		return
 	}
 
 	if block == nil {
@@ -384,51 +331,52 @@ func (t *DneroRPCService) GetBlockByHeight(args *GetBlockByHeightArgs, result *G
 	result.Status = block.Status
 	result.HCC = block.HCC
 	result.GuardianVotes = block.GuardianVotes
-	result.EliteEdgeNodeVotes = block.EliteEdgeNodeVotes
 
 	result.Hash = block.Hash()
 
-	t.gatherTxs(block, &result.Txs, args.IncludeEthTxHashes)
+	// Parse and fulfill Txs.
+	var tx types.Tx
+	for _, txBytes := range block.Txs {
+		tx, err = types.TxFromBytes(txBytes)
+		if err != nil {
+			return
+		}
+		hash := crypto.Keccak256Hash(txBytes)
 
+		tp := getTxType(tx)
+		txw := Tx{
+			Tx:   tx,
+			Hash: hash,
+			Type: tp,
+		}
+
+		receipt, found := t.chain.FindTxReceiptByHash(hash)
+		if found {
+			txw.Receipt = receipt
+		}
+
+		result.Txs = append(result.Txs, txw)
+	}
 	return
 }
 
 // ------------------------------ GetBlocksByRange -----------------------------------
 
 type GetBlocksByRangeArgs struct {
-	Start              common.JSONUint64 `json:"start"`
-	End                common.JSONUint64 `json:"end"`
-	IncludeEthTxHashes bool              `json:"include_eth_tx_hashes"`
+	Start common.JSONUint64 `json:"start"`
+	End   common.JSONUint64 `json:"end"`
 }
 
 func (t *DneroRPCService) GetBlocksByRange(args *GetBlocksByRangeArgs, result *GetBlocksResult) (err error) {
-	// if args.Start == 0 && args.End == 0 {
-	// 	return errors.New("Starting block and ending block must be specified")
-	// }
-	genesisBlock := &GetBlockResultInner{}
-	var genesisHash common.Hash
-	if t.consensus.Chain().ChainID == core.MainnetChainID {
-		genesisHash = common.HexToHash(core.MainnetGenesisBlockHash)
-	} else {
-		genesisHash = common.HexToHash(viper.GetString(common.CfgGenesisHash))
-	}
-	genesisBlock.ChainID = t.consensus.Chain().ChainID
-	genesisBlock.Children = []common.Hash{}
-	genesisBlock.Status = core.BlockStatusDirectlyFinalized
-	genesisBlock.Timestamp = (*common.JSONBig)(big.NewInt(0))
-	genesisBlock.Hash = genesisHash
-
-	if args.End == 0 {
-		*result = append([]*GetBlockResultInner{genesisBlock}, *result...)
-		return
+	if args.Start == 0 && args.End == 0 {
+		return errors.New("Starting block and ending block must be specified")
 	}
 
 	if args.Start > args.End {
 		return errors.New("Starting block must be less than ending block")
 	}
 
-	maxBlockRange := common.JSONUint64(5000)
-	if args.End-args.Start > maxBlockRange {
+	if args.End-args.Start > 100 {
 		return errors.New("Can't retrieve more than 100 blocks at a time")
 	}
 
@@ -446,11 +394,7 @@ func (t *DneroRPCService) GetBlocksByRange(args *GetBlocksByRangeArgs, result *G
 		return
 	}
 
-	startBlockHeight := args.Start
-	if args.Start == 0 {
-		startBlockHeight = 1 // genesis block needs special handling
-	}
-	for common.JSONUint64(block.Height) >= startBlockHeight {
+	for common.JSONUint64(block.Height) >= args.Start {
 		blkInner := &GetBlockResultInner{}
 		blkInner.ChainID = block.ChainID
 		blkInner.Epoch = common.JSONUint64(block.Epoch)
@@ -464,11 +408,26 @@ func (t *DneroRPCService) GetBlocksByRange(args *GetBlocksByRangeArgs, result *G
 		blkInner.Status = block.Status
 		blkInner.HCC = block.HCC
 		blkInner.GuardianVotes = block.GuardianVotes
-		blkInner.EliteEdgeNodeVotes = block.EliteEdgeNodeVotes
 
 		blkInner.Hash = block.Hash()
 
-		t.gatherTxs(block, &blkInner.Txs, args.IncludeEthTxHashes)
+		// Parse and fulfill Txs.
+		var tx types.Tx
+		for _, txBytes := range block.Txs {
+			tx, err = types.TxFromBytes(txBytes)
+			if err != nil {
+				return
+			}
+			hash := crypto.Keccak256Hash(txBytes)
+
+			t := getTxType(tx)
+			txw := Tx{
+				Tx:   tx,
+				Hash: hash,
+				Type: t,
+			}
+			blkInner.Txs = append(blkInner.Txs, txw)
+		}
 
 		*result = append([]*GetBlockResultInner{blkInner}, *result...)
 
@@ -477,10 +436,6 @@ func (t *DneroRPCService) GetBlocksByRange(args *GetBlocksByRangeArgs, result *G
 			return err
 		}
 	}
-	if args.Start == 0 {
-		*result = append([]*GetBlockResultInner{genesisBlock}, *result...)
-	}
-
 	return
 }
 
@@ -500,7 +455,6 @@ type GetStatusResult struct {
 	CurrentHeight              common.JSONUint64 `json:"current_height"`
 	CurrentTime                *common.JSONBig   `json:"current_time"`
 	Syncing                    bool              `json:"syncing"`
-	GenesisBlockHash           common.Hash       `json:"genesis_block_hash"`
 }
 
 func (t *DneroRPCService) GetStatus(args *GetStatusArgs, result *GetStatusResult) (err error) {
@@ -540,55 +494,19 @@ func (t *DneroRPCService) GetStatus(args *GetStatusArgs, result *GetStatusResult
 
 	result.Syncing = !t.consensus.HasSynced()
 
-	var genesisHash common.Hash
-	if t.consensus.Chain().ChainID == core.MainnetChainID {
-		genesisHash = common.HexToHash(core.MainnetGenesisBlockHash)
-	} else {
-		genesisHash = common.HexToHash(viper.GetString(common.CfgGenesisHash))
-	}
-	result.GenesisBlockHash = genesisHash
-
-	return
-}
-
-// ------------------------------ GetPeerURLs -----------------------------------
-
-type GetPeerURLsArgs struct {
-	SkipEdgeNode bool `json:"skip_edge_node"`
-}
-
-type GetPeerURLsResult struct {
-	PeerURLs []string `json:"peer_urls"`
-}
-
-func (t *DneroRPCService) GetPeerURLs(args *GetPeersArgs, result *GetPeerURLsResult) (err error) {
-	peerURLs := t.dispatcher.PeerURLs(args.SkipEdgeNode)
-
-	numPeers := len(peerURLs)
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(numPeers, func(i, j int) { peerURLs[i], peerURLs[j] = peerURLs[j], peerURLs[i] })
-
-	maxNumOfPeers := 256
-	if len(peerURLs) < maxNumOfPeers {
-		maxNumOfPeers = len(peerURLs)
-	}
-	result.PeerURLs = peerURLs[0:maxNumOfPeers]
-
 	return
 }
 
 // ------------------------------ GetPeers -----------------------------------
 
-type GetPeersArgs struct {
-	SkipEdgeNode bool `json:"skip_edge_node"`
-}
+type GetPeersArgs struct{}
 
 type GetPeersResult struct {
 	Peers []string `json:"peers"`
 }
 
 func (t *DneroRPCService) GetPeers(args *GetPeersArgs, result *GetPeersResult) (err error) {
-	peers := t.dispatcher.Peers(args.SkipEdgeNode)
+	peers := t.dispatcher.Peers()
 	result.Peers = peers
 
 	return
@@ -719,337 +637,7 @@ func (t *DneroRPCService) GetGuardianInfo(args *GetGuardianInfoArgs, result *Get
 	return nil
 }
 
-// ------------------------------ GetEenp -----------------------------------
-
-type GetEenpByHeightArgs struct {
-	Height common.JSONUint64 `json:"height"`
-}
-
-type GetEenpResult struct {
-	BlockHashEenpPairs []BlockHashEenpPair
-}
-
-type BlockHashEenpPair struct {
-	BlockHash common.Hash
-	EENs      []*core.EliteEdgeNode
-}
-
-func (t *DneroRPCService) GetEenpByHeight(args *GetEenpByHeightArgs, result *GetEenpResult) (err error) {
-	deliveredView, err := t.ledger.GetDeliveredSnapshot()
-	if err != nil {
-		return err
-	}
-
-	db := deliveredView.GetDB()
-	height := uint64(args.Height)
-
-	blockHashEenpPairs := []BlockHashEenpPair{}
-	blocks := t.chain.FindBlocksByHeight(height)
-	for _, b := range blocks {
-		blockHash := b.Hash()
-		stateRoot := b.StateHash
-		blockStoreView := state.NewStoreView(height, stateRoot, db)
-		if blockStoreView == nil { // might have been pruned
-			return fmt.Errorf("the EENP for height %v does not exists, it might have been pruned", height)
-		}
-		eenp := state.NewEliteEdgeNodePool(blockStoreView, true)
-		eens := eenp.GetAll(false)
-		blockHashEenpPairs = append(blockHashEenpPairs, BlockHashEenpPair{
-			BlockHash: blockHash,
-			EENs:      eens,
-		})
-	}
-
-	result.BlockHashEenpPairs = blockHashEenpPairs
-
-	return nil
-}
-
-// ------------------------------ GetStakeRewardDistributionRuleSetByHeight -----------------------------------
-
-type GetStakeRewardDistributionRuleSetByHeightArgs struct {
-	Height  common.JSONUint64 `json:"height"`
-	Address string            `json:"address"` // the address of the stake holder, i.e. the guardian or elite edge node
-}
-
-type GetStakeRewardDistributionRuleSetResult struct {
-	BlockHashStakeRewardDistributionRuleSetPairs []BlockHashStakeRewardDistributionRuleSetPair
-}
-
-type BlockHashStakeRewardDistributionRuleSetPair struct {
-	BlockHash                      common.Hash
-	StakeRewardDistributionRuleSet []*core.RewardDistribution
-}
-
-func (t *DneroRPCService) GetStakeRewardDistributionByHeight(
-	args *GetStakeRewardDistributionRuleSetByHeightArgs, result *GetStakeRewardDistributionRuleSetResult) (err error) {
-	deliveredView, err := t.ledger.GetDeliveredSnapshot()
-	if err != nil {
-		return err
-	}
-
-	db := deliveredView.GetDB()
-	height := uint64(args.Height)
-	addressStr := args.Address
-
-	blockHashSrdrsPairs := []BlockHashStakeRewardDistributionRuleSetPair{}
-	blocks := t.chain.FindBlocksByHeight(height)
-	for _, b := range blocks {
-		blockHash := b.Hash()
-		stateRoot := b.StateHash
-		blockStoreView := state.NewStoreView(height, stateRoot, db)
-		if blockStoreView == nil { // might have been pruned
-			return fmt.Errorf("the EENP for height %v does not exists, it might have been pruned", height)
-		}
-		srdrs := state.NewStakeRewardDistributionRuleSet(blockStoreView)
-
-		var stakeDistrList []*core.RewardDistribution
-		if addressStr != "" {
-			address := common.HexToAddress(addressStr)
-			rewardDistr := srdrs.Get(address)
-			stakeDistrList = []*core.RewardDistribution{rewardDistr}
-		} else {
-			stakeDistrList = srdrs.GetAll()
-		}
-
-		blockHashSrdrsPairs = append(blockHashSrdrsPairs, BlockHashStakeRewardDistributionRuleSetPair{
-			BlockHash:                      blockHash,
-			StakeRewardDistributionRuleSet: stakeDistrList,
-		})
-	}
-
-	result.BlockHashStakeRewardDistributionRuleSetPairs = blockHashSrdrsPairs
-
-	return nil
-}
-
-// ------------------------------ GetEliteEdgeNodeStakeReturnsByHeight -----------------------------------
-
-type GetEliteEdgeNodeStakeReturnsByHeightArgs struct {
-	Height common.JSONUint64 `json:"height"`
-}
-
-type GetEliteEdgeNodeStakeReturnsByHeightResult struct {
-	EENStakeReturns []state.StakeWithHolder
-}
-
-func (t *DneroRPCService) GetEliteEdgeNodeStakeReturnsByHeight(
-	args *GetEliteEdgeNodeStakeReturnsByHeightArgs, result *GetEliteEdgeNodeStakeReturnsByHeightResult) (err error) {
-	deliveredView, err := t.ledger.GetDeliveredSnapshot()
-	if err != nil {
-		return err
-	}
-
-	height := uint64(args.Height)
-	result.EENStakeReturns = deliveredView.GetEliteEdgeNodeStakeReturns(height)
-
-	return nil
-}
-
-// ------------------------------ GetAllPendingEliteEdgeNodeStakeReturns -----------------------------------
-
-type HeightStakeReturnsPair struct {
-	HeightKey       string
-	EENStakeReturns []state.StakeWithHolder
-}
-
-type GetAllPendingEliteEdgeNodeStakeReturnsArgs struct {
-}
-
-type GetAllPendingEliteEdgeNodeStakeReturnsResult struct {
-	EENHeightStakeReturnsPairs []HeightStakeReturnsPair
-}
-
-func (t *DneroRPCService) GetAllPendingEliteEdgeNodeStakeReturns(
-	args *GetAllPendingEliteEdgeNodeStakeReturnsArgs, result *GetAllPendingEliteEdgeNodeStakeReturnsResult) (err error) {
-	deliveredView, err := t.ledger.GetDeliveredSnapshot()
-	if err != nil {
-		return err
-	}
-
-	eenHeightStakeReturnsPairs := []HeightStakeReturnsPair{}
-	cb := func(k, v common.Bytes) bool {
-		srList := []state.StakeWithHolder{}
-		err := types.FromBytes(v, &srList)
-		if err != nil {
-			log.Panicf("GetAllPendingEliteEdgeNodeStakeReturns: Error reading StakeWithHolder %X, error: %v",
-				v, err.Error())
-		}
-
-		eenHeightStakeReturnsPairs = append(eenHeightStakeReturnsPairs, HeightStakeReturnsPair{
-			HeightKey:       string(k),
-			EENStakeReturns: srList,
-		})
-		return true
-	}
-
-	prefix := state.EliteEdgeNodeStakeReturnsKeyPrefix()
-	deliveredView.Traverse(prefix, cb)
-
-	result.EENHeightStakeReturnsPairs = eenHeightStakeReturnsPairs
-
-	return nil
-}
-
-// ------------------------------- GetCode -----------------------------------
-
-type GetCodeArgs struct {
-	Address string            `json:"address"`
-	Height  common.JSONUint64 `json:"height"`
-}
-
-type GetCodeResult struct {
-	Address string `json:"address"`
-	Code    string `json:"code"`
-}
-
-func (t *DneroRPCService) GetCode(args *GetCodeArgs, result *GetCodeResult) (err error) {
-	if args.Address == "" {
-		return errors.New("address must be specified")
-	}
-	address := common.HexToAddress(args.Address)
-	result.Address = args.Address
-	height := uint64(args.Height)
-
-	if height == 0 { // get the latest
-		var ledgerState *state.StoreView
-		ledgerState, err = t.ledger.GetFinalizedSnapshot()
-		if err != nil {
-			return err
-		}
-		codeBytes := ledgerState.GetCode(address)
-		result.Code = hex.EncodeToString(codeBytes)
-	} else {
-		blocks := t.chain.FindBlocksByHeight(height)
-		if len(blocks) == 0 {
-			result.Code = ""
-			return nil
-		}
-
-		deliveredView, err := t.ledger.GetDeliveredSnapshot()
-		if err != nil {
-			return err
-		}
-		db := deliveredView.GetDB()
-
-		for _, b := range blocks {
-			if b.Status.IsFinalized() {
-				stateRoot := b.StateHash
-				ledgerState := state.NewStoreView(height, stateRoot, db)
-				if ledgerState == nil { // might have been pruned
-					return fmt.Errorf("the account details for height %v is not available, it might have been pruned", height)
-				}
-				codeBytes := ledgerState.GetCode(address)
-				result.Code = hex.EncodeToString(codeBytes)
-				break
-			}
-		}
-
-	}
-
-	return nil
-}
-
-// ------------------------------- GetStorageAt -----------------------------------
-
-type GetStorageAtArgs struct {
-	Address         string            `json:"address"`
-	StoragePosition string            `json:"storage_positon"`
-	Height          common.JSONUint64 `json:"height"`
-}
-
-type GetStorageAtResult struct {
-	Value string `json:"value"`
-}
-
-func (t *DneroRPCService) GetStorageAt(args *GetStorageAtArgs, result *GetStorageAtResult) (err error) {
-	if args.Address == "" || args.StoragePosition == "" {
-		return fmt.Errorf("address and storage_position must be specified, address: %v, storage_position: %v", args.Address, args.StoragePosition)
-	}
-	address := common.HexToAddress(args.Address)
-	key := common.HexToHash(args.StoragePosition)
-	height := uint64(args.Height)
-
-	if height == 0 { // get the latest
-		var ledgerState *state.StoreView
-		ledgerState, err = t.ledger.GetFinalizedSnapshot()
-		if err != nil {
-			return err
-		}
-		value := ledgerState.GetState(address, key)
-		result.Value = hex.EncodeToString(value.Bytes())
-	} else {
-		blocks := t.chain.FindBlocksByHeight(height)
-		if len(blocks) == 0 {
-			result.Value = ""
-			return nil
-		}
-
-		deliveredView, err := t.ledger.GetDeliveredSnapshot()
-		if err != nil {
-			return err
-		}
-		db := deliveredView.GetDB()
-
-		for _, b := range blocks {
-			if b.Status.IsFinalized() {
-				stateRoot := b.StateHash
-				ledgerState := state.NewStoreView(height, stateRoot, db)
-				if ledgerState == nil { // might have been pruned
-					return fmt.Errorf("the account details for height %v is not available, it might have been pruned", height)
-				}
-				value := ledgerState.GetState(address, key)
-				result.Value = hex.EncodeToString(value.Bytes())
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
 // ------------------------------ Utils ------------------------------
-
-func (t *DneroRPCService) gatherTxs(block *core.ExtendedBlock, txs *[]interface{}, includeEthTxHashes bool) error {
-	// Parse and fulfill Txs.
-	//var tx types.Tx
-	for _, txBytes := range block.Txs {
-		tx, err := types.TxFromBytes(txBytes)
-		if err != nil {
-			return err
-		}
-		hash := crypto.Keccak256Hash(txBytes)
-		receipt, found := t.chain.FindTxReceiptByHash(hash)
-		if !found {
-			receipt = nil
-		}
-
-		tp := getTxType(tx)
-
-		var txw interface{}
-		if !includeEthTxHashes { // For backward compatibility, return the same tx struct as before
-			txw = Tx{
-				Tx:      tx,
-				Hash:    hash,
-				Type:    tp,
-				Receipt: receipt,
-			}
-		} else {
-			ethTxHash, _ := blockchain.CalcEthTxHash(block, txBytes) // ignore error, since ethTxHash will be 0x000...000 if the function returns an error
-			txw = TxWithEthHash{
-				Tx:        tx,
-				Hash:      hash,
-				EthTxHash: ethTxHash,
-				Type:      tp,
-				Receipt:   receipt,
-			}
-		}
-
-		*txs = append(*txs, txw)
-	}
-
-	return nil
-}
 
 func getTxType(tx types.Tx) byte {
 	t := byte(0x0)
@@ -1076,8 +664,6 @@ func getTxType(tx types.Tx) byte {
 		t = TxTypeWithdrawStake
 	case *types.DepositStakeTxV1:
 		t = TxTypeDepositStakeTxV1
-	case *types.StakeRewardDistributionTx:
-		t = TxTypeStakeRewardDistributionTx
 	}
 
 	return t

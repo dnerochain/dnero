@@ -23,9 +23,7 @@ var peersCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		client := rpcc.NewRPCClient(viper.GetString(utils.CfgRemoteRPCEndpoint))
 
-		res, err := client.Call("dnero.GetPeers", rpc.GetPeersArgs{
-			SkipEdgeNode: skipEdgeNodeFlag,
-		})
+		res, err := client.Call("dnero.GetPeers", rpc.GetStatusArgs{})
 		if err != nil {
 			utils.Error("Failed to get peers: %v\n", err)
 		}
@@ -38,8 +36,4 @@ var peersCmd = &cobra.Command{
 		}
 		fmt.Println(string(json))
 	},
-}
-
-func init() {
-	peersCmd.Flags().BoolVar(&skipEdgeNodeFlag, "skip_edge_node", true, "skip peer edge nodes")
 }

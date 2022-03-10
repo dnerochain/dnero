@@ -11,9 +11,8 @@ import (
 // ------------------------------- BackupSnapshot -----------------------------------
 
 type BackupSnapshotArgs struct {
-	Config  string `json:"config"`
-	Height  uint64 `json:"height"`
-	Version uint64 `json:"version"`
+	Config string `json:"config"`
+	Height uint64 `json:"height"`
 }
 
 type BackupSnapshotResult struct {
@@ -21,11 +20,6 @@ type BackupSnapshotResult struct {
 }
 
 func (t *DneroRPCService) BackupSnapshot(args *BackupSnapshotArgs, result *BackupSnapshotResult) error {
-	// Default to older verison
-	if args.Version == 0 {
-		args.Version = 2
-	}
-
 	db := t.ledger.State().DB()
 	consensus := t.consensus
 	chain := t.chain
@@ -35,18 +29,9 @@ func (t *DneroRPCService) BackupSnapshot(args *BackupSnapshotArgs, result *Backu
 		os.MkdirAll(snapshotDir, os.ModePerm)
 	}
 
-	if args.Version == 2 {
-		snapshotFile, err := snapshot.ExportSnapshotV2(db, consensus, chain, snapshotDir, args.Height)
-		result.SnapshotFile = snapshotFile
-		return err
-	} else if args.Version == 3 {
-		snapshotFile, err := snapshot.ExportSnapshotV3(db, consensus, chain, snapshotDir, args.Height)
-		result.SnapshotFile = snapshotFile
-		return err
-	}
-
-	snapshotFile, err := snapshot.ExportSnapshotV4(db, consensus, chain, snapshotDir, args.Height)
+	snapshotFile, err := snapshot.ExportSnapshot(db, consensus, chain, snapshotDir, args.Height)
 	result.SnapshotFile = snapshotFile
+
 	return err
 }
 

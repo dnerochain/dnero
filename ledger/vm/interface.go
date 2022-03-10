@@ -26,15 +26,11 @@ import (
 // StateDB is an EVM database for full state querying.
 type StateDB interface {
 	CreateAccount(common.Address)
-	GetAccount(common.Address) *types.Account
-	CreateAccountWithPreviousBalance(addr common.Address)
 
 	SubBalance(common.Address, *big.Int)
 	AddBalance(common.Address, *big.Int)
 	GetBalance(common.Address) *big.Int
 
-	SubDneroBalance(common.Address, *big.Int)
-	AddDneroBalance(common.Address, *big.Int)
 	GetDneroBalance(common.Address) *big.Int // GetDneroBalance returns the DneroWei balance of the given address
 	GetDneroStake(common.Address) *big.Int   // GetDneroStake returns the total amount of DneroWei the address staked to validators and/or guardians
 

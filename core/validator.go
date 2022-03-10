@@ -216,7 +216,7 @@ func (vcp *ValidatorCandidatePool) DepositStake(source common.Address, holder co
 	}
 
 	if !matchedHolderFound {
-		newCandidate := NewStakeHolder(holder, []*Stake{NewStake(source, amount)})
+		newCandidate := newStakeHolder(holder, []*Stake{newStake(source, amount)})
 		vcp.SortedCandidates = append(vcp.SortedCandidates, newCandidate)
 	}
 
@@ -230,7 +230,7 @@ func (vcp *ValidatorCandidatePool) WithdrawStake(source common.Address, holder c
 	for _, candidate := range vcp.SortedCandidates {
 		if candidate.Holder == holder {
 			matchedHolderFound = true
-			_, err := candidate.withdrawStake(source, currentHeight)
+			err := candidate.withdrawStake(source, currentHeight)
 			if err != nil {
 				return err
 			}

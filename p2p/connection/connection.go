@@ -110,8 +110,6 @@ func CreateConnection(netconn net.Conn, config ConnectionConfig) *Connection {
 	channelPing := createDefaultChannel(common.ChannelIDPing)
 	channelGuardian := createDefaultChannel(common.ChannelIDGuardian)
 	channelNATMapping := createDefaultChannel(common.ChannelIDNATMapping)
-	channelEliteEdgeNodeVote := createDefaultChannel(common.ChannelIDEliteEdgeNodeVote)
-	channelEliteAggregatedEdgeNodeVotes := createDefaultChannel(common.ChannelIDAggregatedEliteEdgeNodeVotes)
 	channels := []*Channel{
 		&channelCheckpoint,
 		&channelHeader,
@@ -123,8 +121,6 @@ func CreateConnection(netconn net.Conn, config ConnectionConfig) *Connection {
 		&channelPing,
 		&channelGuardian,
 		&channelNATMapping,
-		&channelEliteEdgeNodeVote,
-		&channelEliteAggregatedEdgeNodeVotes,
 	}
 
 	success, channelGroup := createChannelGroup(getDefaultChannelGroupConfig(), channels)
@@ -209,7 +205,7 @@ func (conn *Connection) Stop() {
 	logger.Warnf("Stopping connection, local: %v, remote: %v", conn.GetNetconn().LocalAddr(), conn.GetNetconn().RemoteAddr())
 	err := conn.netconn.Close()
 	if err != nil {
-		logger.Warnf("Failed to close connection: %v", err)
+		logger.Errorf("Failed to close connection: %v", err)
 	}
 
 	if conn.cancel != nil {
@@ -323,7 +319,7 @@ func (conn *Connection) sendRoutine() {
 			return
 		}
 		if err != nil {
-			logger.Warnf("sendRoutine error: %v", err)
+			logger.Errorf("sendRoutine error: %v", err)
 			conn.stopForError(err)
 			return
 		}
@@ -334,7 +330,7 @@ func (conn *Connection) sendPingSignal() error {
 	if atomic.LoadUint32(&conn.pendingPings) >= conn.config.MaxPendingPings {
 		//conn.onError(nil)
 		conn.stopForError(nil)
-		logger.Warnf("Peer not responding to ping %v", conn.netconn.RemoteAddr())
+		logger.Errorf("Peer not responding to ping %v", conn.netconn.RemoteAddr())
 		return fmt.Errorf("Peer not responding to ping %v", conn.netconn.RemoteAddr())
 	}
 	pingPacket := &Packet{
@@ -560,7 +556,7 @@ func (conn *Connection) GetBufReader() *bufio.Reader {
 }
 
 func (conn *Connection) stopForError(r interface{}) {
-	logger.Warnf("Connection error: %v", r)
+	logger.Errorf("Connection error: %v", r)
 	if atomic.CompareAndSwapUint32(&conn.errored, 0, 1) {
 		conn.Stop()
 		if conn.onError != nil {

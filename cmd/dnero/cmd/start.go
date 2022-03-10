@@ -26,7 +26,6 @@ import (
 	"github.com/dnerochain/dnero/rlp"
 	"github.com/dnerochain/dnero/snapshot"
 	"github.com/dnerochain/dnero/store/database/backend"
-	"github.com/dnerochain/dnero/store/rollingdb"
 	"github.com/dnerochain/dnero/version"
 	ks "github.com/dnerochain/dnero/wallet/softwallet/keystore"
 )
@@ -63,8 +62,6 @@ func runStart(cmd *cobra.Command, args []string) {
 	db, err := backend.NewLDBDatabase(mainDBPath, refDBPath,
 		viper.GetInt(common.CfgStorageLevelDBCacheSize),
 		viper.GetInt(common.CfgStorageLevelDBHandles))
-
-	rdb := rollingdb.NewRollingDB(dbPath, db)
 
 	if err != nil {
 		log.Fatalf("Failed to connect to the db. main: %v, ref: %v, err: %v",
@@ -142,7 +139,6 @@ func runStart(cmd *cobra.Command, args []string) {
 		NetworkOld:          networkOld,
 		Network:             network,
 		DB:                  db,
-		RollingDB:           rdb,
 		SnapshotPath:        snapshotPath,
 		ChainImportDirPath:  chainImportDirPath,
 		ChainCorrectionPath: chainCorrectionPath,
@@ -364,7 +360,6 @@ func printExitBanner() {
 	fmt.Println("")
 	fmt.Println("")
 }
-
 // memoryCleanupRoutine peridically forces memory garbage collection.
 func memoryCleanupRoutine() {
 	var m runtime.MemStats

@@ -85,7 +85,7 @@ func TestPeerFailureHandling(t *testing.T) {
 		assert.True(inboundDetected)
 	}
 
-	allPeers := discMgr.peerTable.GetAllPeers(true)
+	allPeers := discMgr.peerTable.GetAllPeers()
 	assert.Equal(2, len(*allPeers))
 
 	t.Logf("---------------- All peers ----------------")
@@ -107,5 +107,5 @@ func TestPeerFailureHandling(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 
-	assert.Equal(uint(0), discMgr.peerTable.GetTotalNumPeers(true))
+	assert.Equal(uint(0), discMgr.peerTable.GetTotalNumPeers())
 }

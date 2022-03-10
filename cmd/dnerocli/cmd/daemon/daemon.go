@@ -14,9 +14,8 @@ import (
 //		dnerocli daemon start --port=15611
 var startDaemonCmd = &cobra.Command{
 	Use:     "start",
-	Short:   "Run the thatacli daemon",
-	Long:    `Run the thatacli daemon.`,
-	//Example: `dnerocli daemon start --port=16889`,//DEL
+	Short:   "Run the dnerocli daemon",
+	Long:    `Run the dnerocli daemon.`,
 	Example: `dnerocli daemon start --port=15611`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfgPath := cmd.Flag("config").Value.String()

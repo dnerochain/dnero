@@ -35,15 +35,14 @@ type Executor struct {
 
 	coinbaseTxExec *CoinbaseTxExecutor
 	// slashTxExec          *SlashTxExecutor
-	sendTxExec                    *SendTxExecutor
-	reserveFundTxExec             *ReserveFundTxExecutor
-	releaseFundTxExec             *ReleaseFundTxExecutor
-	servicePaymentTxExec          *ServicePaymentTxExecutor
-	splitRuleTxExec               *SplitRuleTxExecutor
-	smartContractTxExec           *SmartContractTxExecutor
-	depositStakeTxExec            *DepositStakeExecutor
-	withdrawStakeTxExec           *WithdrawStakeExecutor
-	stakeRewardDistributionTxExec *StakeRewardDistributionTxExecutor
+	sendTxExec           *SendTxExecutor
+	reserveFundTxExec    *ReserveFundTxExecutor
+	releaseFundTxExec    *ReleaseFundTxExecutor
+	servicePaymentTxExec *ServicePaymentTxExecutor
+	splitRuleTxExec      *SplitRuleTxExecutor
+	smartContractTxExec  *SmartContractTxExecutor
+	depositStakeTxExec   *DepositStakeExecutor
+	withdrawStakeTxExec  *WithdrawStakeExecutor
 
 	skipSanityCheck bool
 }
@@ -58,16 +57,15 @@ func NewExecutor(db database.Database, chain *blockchain.Chain, state *st.Ledger
 		valMgr:         valMgr,
 		coinbaseTxExec: NewCoinbaseTxExecutor(db, chain, state, consensus, valMgr),
 		// slashTxExec:          NewSlashTxExecutor(consensus, valMgr),
-		sendTxExec:                    NewSendTxExecutor(state),
-		reserveFundTxExec:             NewReserveFundTxExecutor(state),
-		releaseFundTxExec:             NewReleaseFundTxExecutor(state),
-		servicePaymentTxExec:          NewServicePaymentTxExecutor(state),
-		splitRuleTxExec:               NewSplitRuleTxExecutor(state),
-		smartContractTxExec:           NewSmartContractTxExecutor(chain, state),
-		depositStakeTxExec:            NewDepositStakeExecutor(state),
-		withdrawStakeTxExec:           NewWithdrawStakeExecutor(state),
-		stakeRewardDistributionTxExec: NewStakeRewardDistributionTxExecutor(state),
-		skipSanityCheck:               false,
+		sendTxExec:           NewSendTxExecutor(state),
+		reserveFundTxExec:    NewReserveFundTxExecutor(state),
+		releaseFundTxExec:    NewReleaseFundTxExecutor(state),
+		servicePaymentTxExec: NewServicePaymentTxExecutor(state),
+		splitRuleTxExec:      NewSplitRuleTxExecutor(state),
+		smartContractTxExec:  NewSmartContractTxExecutor(chain, state),
+		depositStakeTxExec:   NewDepositStakeExecutor(state),
+		withdrawStakeTxExec:  NewWithdrawStakeExecutor(state),
+		skipSanityCheck:      false,
 	}
 
 	return executor
@@ -176,10 +174,6 @@ func (exec *Executor) isTxTypeSupported(view *st.StoreView, tx types.Tx) bool {
 		if blockHeight < common.HeightEnableSmartContract {
 			return false
 		}
-	case *types.StakeRewardDistributionTx:
-		if blockHeight < common.HeightEnableDneroV2 {
-			return false
-		}
 	default:
 		return true
 	}
@@ -212,8 +206,6 @@ func (exec *Executor) getTxExecutor(tx types.Tx) TxExecutor {
 		txExecutor = exec.withdrawStakeTxExec
 	case *types.DepositStakeTxV1:
 		txExecutor = exec.depositStakeTxExec
-	case *types.StakeRewardDistributionTx:
-		txExecutor = exec.stakeRewardDistributionTxExec
 	default:
 		txExecutor = nil
 	}

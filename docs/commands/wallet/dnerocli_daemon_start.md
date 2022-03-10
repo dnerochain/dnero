@@ -1,10 +1,10 @@
 ## dnerocli daemon start
 
-Run the thatacli daemon
+Run the dnerocli daemon
 
 ### Synopsis
 
-Run the thatacli daemon.
+Run the dnerocli daemon.
 
 ```
 dnerocli daemon start [flags]

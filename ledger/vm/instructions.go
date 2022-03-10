@@ -697,8 +697,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 	gas -= gas / 64
 
 	contract.UseGas(gas)
-	dneroValue := big.NewInt(0)
-	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value, dneroValue)
+	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -731,8 +730,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memo
 	// Apply EIP150
 	gas -= gas / 64
 	contract.UseGas(gas)
-	dneroEndowment := big.NewInt(0)
-	res, addr, returnGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, dneroEndowment, salt)
+	res, addr, returnGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -762,8 +760,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	dneroValue := big.NewInt(0)
-	ret, returnGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value, dneroValue)
+	ret, returnGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {

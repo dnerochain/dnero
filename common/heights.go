@@ -20,18 +20,6 @@ const HeightSampleStakingReward uint64 = 100001 // block #100001
 // HeightNewFeeAdjustment specifies the block heigth to enable transaction fee burning adjustment
 const HeightNewFeeAdjustment uint64 = 120001 // block #120001
 
-// HeightEnableDneroV2 specifies the minimal block height to enable the DneroV2.0 feature.
-const HeightEnableDneroV2 uint64 = 200001 // block #200001
-
-// HeightRPCCompatibility specifies the block height to enable Ethereum compatible RPC support
-const HeightRPCCompatibility uint64 = 210001 // block #210001
-
-// HeightTxWrapperExtension specifies the block height to extend the Tx Wrapper
-const HeightTxWrapperExtension uint64 = 220001 // block #220001
-
-// HeightSupportDneroTokenInSmartContract specifies the block height to support Dnero in smart contracts
-const HeightSupportDneroTokenInSmartContract uint64 = 250001 // block #250001
-
 // CheckpointInterval defines the interval between checkpoints.
 const CheckpointInterval = int64(100)
 

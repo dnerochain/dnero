@@ -160,7 +160,7 @@ func (spc *SeedPeerConnector) maintainConnectivityRoutine() {
 }
 
 func (spc *SeedPeerConnector) maintainConnectivity() {
-	allPeers := *(spc.discMgr.peerTable.GetAllPeers(true)) // not to count edge node peers
+	allPeers := *(spc.discMgr.peerTable.GetAllPeers())
 	if !spc.discMgr.seedPeerOnly {
 		for _, pr := range allPeers {
 			if pr.IsSeed() {

@@ -7,7 +7,6 @@ import (
 	"github.com/dnerochain/dnero/common"
 	"github.com/dnerochain/dnero/common/result"
 	"github.com/dnerochain/dnero/core"
-	"github.com/dnerochain/dnero/ledger/state"
 	st "github.com/dnerochain/dnero/ledger/state"
 	"github.com/dnerochain/dnero/ledger/types"
 )
@@ -48,7 +47,7 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 	}
 
 	signBytes := tx.SignBytes(chainID)
-	res = validateInputAdvanced(sourceAccount, signBytes, tx.Source, blockHeight)
+	res = validateInputAdvanced(sourceAccount, signBytes, tx.Source)
 	if res.IsError() {
 		logger.Debugf(fmt.Sprintf("validateSourceAdvanced failed on %v: %v", tx.Source.Address.Hex(), res))
 		return res
@@ -59,7 +58,7 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 			minTxFee).WithErrorCode(result.CodeInvalidFee)
 	}
 
-	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian || tx.Purpose == core.StakeForEliteEdgeNode) {
+	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian) {
 		return result.Error("Invalid stake purpose!").
 			WithErrorCode(result.CodeInvalidStakePurpose)
 	}
@@ -70,13 +69,8 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 			WithErrorCode(result.CodeInvalidStake)
 	}
 
-	if (tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian) && stake.DTokenWei.Cmp(types.Zero) != 0 {
-		return result.Error("DToken has to be zero for validator or guardian stake deposit!").
-			WithErrorCode(result.CodeInvalidStake)
-	}
-
-	if tx.Purpose == core.StakeForEliteEdgeNode && stake.DneroWei.Cmp(types.Zero) != 0 {
-		return result.Error("Dnero has to be zero for elite edge node stake deposit!").
+	if stake.DTokenWei.Cmp(types.Zero) != 0 {
+		return result.Error("DToken has to be zero for stake deposit!").
 			WithErrorCode(result.CodeInvalidStake)
 	}
 
@@ -94,33 +88,6 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 		if stake.DneroWei.Cmp(minGuardianStake) < 0 {
 			return result.Error("Insufficient amount of stake, at least %v DneroWei is required for each guardian deposit", minGuardianStake).
 				WithErrorCode(result.CodeInsufficientStake)
-		}
-	}
-
-	if tx.Purpose == core.StakeForEliteEdgeNode {
-		if blockHeight < common.HeightEnableDneroV2 {
-			return result.Error(fmt.Sprintf("Elite Edge Node staking not enabled yet, please wait until block height %v", common.HeightEnableDneroV2)).WithErrorCode(result.CodeGenericError)
-		}
-
-		minEliteEdgeNodeStake := core.MinEliteEdgeNodeStakeDeposit
-		maxEliteEdgeNodeStake := core.MaxEliteEdgeNodeStakeDeposit
-
-		if stake.DneroWei.Cmp(big.NewInt(0)) > 0 {
-			return result.Error("Only DToken can be deposited for elite edge nodes").
-				WithErrorCode(result.CodeStakeExceedsCap)
-		}
-
-		if stake.DTokenWei.Cmp(minEliteEdgeNodeStake) < 0 {
-			return result.Error("Insufficient amount of stake, at least %v DTokenWei is required for each elite edge node deposit", minEliteEdgeNodeStake).
-				WithErrorCode(result.CodeInsufficientStake)
-		}
-
-		eenAddr := tx.Holder.Address
-		currentStake := exec.getEliteEdgeNodeStake(view, eenAddr)
-		expectedStake := big.NewInt(0).Add(currentStake, stake.DTokenWei)
-		if expectedStake.Cmp(maxEliteEdgeNodeStake) > 0 {
-			return result.Error("Stake exceeds the cap, at most %v DTokenWei can be deposited to each elite edge node", maxEliteEdgeNodeStake).
-				WithErrorCode(result.CodeStakeExceedsCap)
 		}
 	}
 
@@ -171,9 +138,22 @@ func (exec *DepositStakeExecutor) process(chainID string, view *st.StoreView, tr
 		gcp := view.GetGuardianCandidatePool()
 
 		if !gcp.Contains(holderAddress) {
-			checkBLSRes := exec.checkBLSSummary(tx)
-			if checkBLSRes.IsError() {
-				return common.Hash{}, checkBLSRes
+			if tx.BlsPubkey.IsEmpty() {
+				return common.Hash{}, result.Error("Must provide BLS Pubkey")
+			}
+			if tx.BlsPop.IsEmpty() {
+				return common.Hash{}, result.Error("Must provide BLS POP")
+			}
+			if tx.HolderSig == nil || tx.HolderSig.IsEmpty() {
+				return common.Hash{}, result.Error("Must provide Holder Signature")
+			}
+
+			if !tx.HolderSig.Verify(tx.BlsPop.ToBytes(), tx.Holder.Address) {
+				return common.Hash{}, result.Error("BLS key info is not properly signed")
+			}
+
+			if !tx.BlsPop.PopVerify(tx.BlsPubkey) {
+				return common.Hash{}, result.Error("BLS pop is invalid")
 			}
 		}
 
@@ -182,22 +162,6 @@ func (exec *DepositStakeExecutor) process(chainID string, view *st.StoreView, tr
 			return common.Hash{}, result.Error("Failed to deposit stake, err: %v", err)
 		}
 		view.UpdateGuardianCandidatePool(gcp)
-	} else if tx.Purpose == core.StakeForEliteEdgeNode {
-		sourceAccount.Balance = sourceAccount.Balance.Minus(stake)
-		stakeAmount := stake.DTokenWei // elite edge node deposits DToken
-		eenp := state.NewEliteEdgeNodePool(view, false)
-
-		if !eenp.Contains(holderAddress) {
-			checkBLSRes := exec.checkBLSSummary(tx)
-			if checkBLSRes.IsError() {
-				return common.Hash{}, checkBLSRes
-			}
-		}
-
-		err := eenp.DepositStake(sourceAddress, holderAddress, stakeAmount, tx.BlsPubkey, blockHeight)
-		if err != nil {
-			return common.Hash{}, result.Error("Failed to deposit stake, err: %v", err)
-		}
 	} else {
 		return common.Hash{}, result.Error("Invalid staking purpose").WithErrorCode(result.CodeInvalidStakePurpose)
 	}
@@ -218,39 +182,6 @@ func (exec *DepositStakeExecutor) process(chainID string, view *st.StoreView, tr
 
 	txHash := types.TxID(chainID, tx)
 	return txHash, result.OK
-}
-
-func (exec *DepositStakeExecutor) checkBLSSummary(tx *types.DepositStakeTxV1) result.Result {
-	if tx.BlsPubkey.IsEmpty() {
-		return result.Error("Must provide BLS Pubkey")
-	}
-	if tx.BlsPop.IsEmpty() {
-		return result.Error("Must provide BLS POP")
-	}
-	if tx.HolderSig == nil || tx.HolderSig.IsEmpty() {
-		return result.Error("Must provide Holder Signature")
-	}
-
-	if !tx.HolderSig.Verify(tx.BlsPop.ToBytes(), tx.Holder.Address) {
-		return result.Error("BLS key info is not properly signed")
-	}
-
-	if !tx.BlsPop.PopVerify(tx.BlsPubkey) {
-		return result.Error("BLS pop is invalid")
-	}
-
-	return result.OK
-}
-
-func (exec *DepositStakeExecutor) getEliteEdgeNodeStake(view *st.StoreView, eenAddr common.Address) *big.Int {
-	eenp := state.NewEliteEdgeNodePool(view, true)
-
-	een := eenp.Get(eenAddr)
-	if een != nil {
-		return een.TotalStake()
-	}
-
-	return big.NewInt(0)
 }
 
 func (exec *DepositStakeExecutor) getTxInfo(transaction types.Tx) *core.TxInfo {

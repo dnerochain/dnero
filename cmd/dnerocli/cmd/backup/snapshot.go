@@ -26,7 +26,7 @@ var snapshotCmd = &cobra.Command{
 func doSnapshotCmd(cmd *cobra.Command, args []string) {
 	client := rpcc.NewRPCClient(viper.GetString(utils.CfgRemoteRPCEndpoint))
 
-	res, err := client.Call("dnero.BackupSnapshot", rpc.BackupSnapshotArgs{Config: configFlag, Height: heightFlag, Version: versionFlag})
+	res, err := client.Call("dnero.BackupSnapshot", rpc.BackupSnapshotArgs{Config: configFlag, Height: heightFlag})
 	if err != nil {
 		utils.Error("Failed to get backup snapshot call details: %v\n", err)
 	}
@@ -44,5 +44,4 @@ func init() {
 	snapshotCmd.Flags().StringVar(&configFlag, "config", "", "Config dir")
 	snapshotCmd.MarkFlagRequired("config")
 	snapshotCmd.Flags().Uint64Var(&heightFlag, "height", 0, "Snapshot height")
-	snapshotCmd.Flags().Uint64Var(&versionFlag, "version", 0, "Snapshot version.(2 or 3. Default is 2)")
 }

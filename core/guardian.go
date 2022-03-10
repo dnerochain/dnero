@@ -157,15 +157,15 @@ func (a *AggregatedVotes) Copy() *AggregatedVotes {
 var (
 	MinGuardianStakeDeposit *big.Int
 
-	//MinGuardianStakeDeposit1000 *big.Int //StakeDeposit Fork Removed
+	MinGuardianStakeDeposit1000 *big.Int
 )
 
 func init() {
-	// Each stake deposit needs to be at least 1,000 Dnero
-	MinGuardianStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
+	// Each stake deposit needs to be at least 10,000 Dnero
+	MinGuardianStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(10000), new(big.Int).SetUint64(1e18))
 
-	// Lowering the guardian stake threshold to 1,000 Dnero //StakeDeposit Fork Removed
-	//MinGuardianStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), //new(big.Int).SetUint64(1e18)) //StakeDeposit Fork Removed
+	// Lowering the guardian stake threshold to 1,000 Dnero
+	MinGuardianStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
 
 }
 
@@ -247,16 +247,6 @@ func (gcp *GuardianCandidatePool) WithStake() *GuardianCandidatePool {
 	return ret
 }
 
-// GetWithHolderAddress returns the guardian node correspond to the stake holder in the pool. Returns nil if not found.
-func (gcp *GuardianCandidatePool) GetWithHolderAddress(addr common.Address) *Guardian {
-	for _, g := range gcp.SortedGuardians {
-		if g.Holder == addr {
-			return g
-		}
-	}
-	return nil
-}
-
 // Index returns index of a public key in the pool. Returns -1 if not found.
 func (gcp *GuardianCandidatePool) Index(pubkey *bls.PublicKey) int {
 	for i, g := range gcp.SortedGuardians {
@@ -320,7 +310,7 @@ func (gcp *GuardianCandidatePool) DepositStake(source common.Address, holder com
 
 	if !matchedHolderFound {
 		newGuardian := &Guardian{
-			StakeHolder: NewStakeHolder(holder, []*Stake{NewStake(source, amount)}),
+			StakeHolder: newStakeHolder(holder, []*Stake{newStake(source, amount)}),
 			Pubkey:      pubkey,
 		}
 		gcp.Add(newGuardian)
@@ -333,7 +323,7 @@ func (gcp *GuardianCandidatePool) WithdrawStake(source common.Address, holder co
 	for _, g := range gcp.SortedGuardians {
 		if g.Holder == holder {
 			matchedHolderFound = true
-			_, err := g.withdrawStake(source, currentHeight)
+			err := g.withdrawStake(source, currentHeight)
 			if err != nil {
 				return err
 			}
