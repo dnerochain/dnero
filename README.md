@@ -1,6 +1,6 @@
 # Dnero Blockchain
-### TestChainnet v0.7.0
-[TESTCHAINNET - MAJOR CHANGES]
+### TestChainnet v0.7.1
+[TESTCHAINNET - CORRECTIONS]
 ```
 ## Block Heights Activation
 
