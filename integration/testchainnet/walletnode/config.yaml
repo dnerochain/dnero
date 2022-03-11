@@ -1,10 +1,10 @@
-# Dnero mainnet wallet node configuration
+# Dnero testchainnet wallet node configuration
 storage:
   statePruningRetainedBlocks: 2048
 p2p:
   opt: 0
   port: 31000
-  seeds: 45.76.65.243:31000,155.138.227.130:31000,140.82.62.22:31000
+  seeds: 208.68.38.10:31000,45.77.71.222:31000,45.76.249.125:31000,149.28.194.235:31000
   minNumPeers: 24
   maxNumPeers: 96
   natMapping: true
