@@ -1,10 +1,10 @@
 package common
 
+// HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1.0 feature.
+const HeightEnableDneroV1 uint64 = 1001 // block #1001
+
 // HeightEnableValidatorReward specifies the minimal block height to enable the validator DTOKEN reward
 const HeightEnableValidatorReward uint64 = 10001 // block #10001
-
-// HeightEnableDneroV1 specifies the minimal block height to enable the DneroV1.0 feature.
-const HeightEnableDneroV1 uint64 = 20001 // block #20001
 
 //DEL
 // HeightLowerGNStakeThresholdTo1000 specifies the minimal block height to lower the GN Stake Threshold to 1,000 DNERO
@@ -12,13 +12,13 @@ const HeightEnableDneroV1 uint64 = 20001 // block #20001
 //DEL
 
 // HeightEnableSmartContract specifies the minimal block height to enable the Turing-complete smart contract support
-const HeightEnableSmartContract uint64 = 50001 // block #50001
+const HeightEnableSmartContract uint64 = 20001 // block #20001
 
 // HeightSampleStakingReward specifies the block heigth to enable sampling of staking reward
-const HeightSampleStakingReward uint64 = 100001 // block #100001
+const HeightSampleStakingReward uint64 = 50001 // block #50001
 
 // HeightNewFeeAdjustment specifies the block heigth to enable transaction fee burning adjustment
-const HeightNewFeeAdjustment uint64 = 120001 // block #120001
+const HeightNewFeeAdjustment uint64 = 100001 // block #100001
 
 // CheckpointInterval defines the interval between checkpoints.
 const CheckpointInterval = int64(100)
