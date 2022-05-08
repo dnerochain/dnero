@@ -72,5 +72,5 @@ func getDefaultConfigPath() string {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	return path.Join(home, ".dneroclitest")
+	return path.Join(home, ".dnerocli")
 }
