@@ -89,7 +89,7 @@ func getDefaultConfigPath() string {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	return path.Join(home, ".dnero")
+	return path.Join(home, ".dnerotest")
 }
 
 func getDefaultSnapshotPath() string {
