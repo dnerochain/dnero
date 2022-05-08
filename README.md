@@ -1,13 +1,17 @@
 # Dnero Blockchain
-### TestChain v0.8.0
-[TESTCHAINNET - LIVE]
-```
+### Mainnet v1.0.0
+[!!! MAINNET - LIVE !!!]
+
 ## Block Heights Activation
->DneroV1.0 Feature Activation Block #201
->Validator Reward Activation Block #30001
->Smart Contract Activation Block #40001
->Sample Staking Reward Activation Block #50001
+```
+>DneroV1.0 Feature Activation Block #1
+>Validator Reward Activation Block #20001
+>Smart Contract Activation Block #50001
+>Sample Staking Reward Activation Block #70001
 >New Tx Fee Adjustment Activation Block #100001
+```
 
-
-!!! Not ready for production !!!
+## Min DNERO To Become A Validator
+```
+>Min: 2000000 DNERO
+```
