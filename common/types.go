@@ -398,8 +398,8 @@ const (
 	// ChannelIDPing indicates the channel for Ping/Pong messages between peers
 	ChannelIDPing
 
-	// ChannelIDGuardian indicates the channel for Guardian messages between peers
-	ChannelIDGuardian
+	// ChannelIDSentry indicates the channel for Sentry messages between peers
+	ChannelIDSentry
 
 	// ChannelIDNATMapping indicates the channel for NAT Mapping messages between peers
 	ChannelIDNATMapping

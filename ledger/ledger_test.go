@@ -366,8 +366,8 @@ func TestValidatorStakeUpdate(t *testing.T) {
 	log.Infof("Returned coins: %v", returnedCoins)
 }
 
-// Test case for guardian stake deposit, withdrawal, and return
-func TestGuardianStakeUpdate(t *testing.T) {
+// Test case for sentry stake deposit, withdrawal, and return
+func TestSentryStakeUpdate(t *testing.T) {
 	assert := assert.New(t)
 
 	// ----------------- Stake Deposit ----------------- //
@@ -390,7 +390,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
-				DneroWei: new(big.Int).Set(core.MinGuardianStakeDeposit),
+				DneroWei: new(big.Int).Set(core.MinSentryStakeDeposit),
 				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 1,
@@ -398,12 +398,12 @@ func TestGuardianStakeUpdate(t *testing.T) {
 		Holder: types.TxOutput{
 			Address: depoistHolderPrivAcc.Address,
 		},
-		Purpose: core.StakeForGuardian,
+		Purpose: core.StakeForSentry,
 	}
 	signBytes := depositStakeTx.SignBytes(es.chainID)
 	depositStakeTx.Source.Signature = depositSourcePrivAcc.Sign(signBytes)
 
-	// ----------- Guardian's first deposit must include valid BLS Pubkey/Pop -------- //
+	// ----------- Sentry's first deposit must include valid BLS Pubkey/Pop -------- //
 	_, res := es.executor.ExecuteTx(depositStakeTx)
 	assert.True(res.IsError(), "No blsPubkey/Pop")
 	assert.Equal("Must provide BLS Pubkey", res.Message)
@@ -462,13 +462,13 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	b1.StateHash = es.state.Commit()
 	es.addBlock(b1)
 
-	// ----------- BLS Pubkey/Pop in existing guardian's deposit should be ignored -------- //
+	// ----------- BLS Pubkey/Pop in existing sentry's deposit should be ignored -------- //
 	depositStakeTx = &types.DepositStakeTxV1{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
-				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(2), core.MinGuardianStakeDeposit),
+				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(2), core.MinSentryStakeDeposit),
 				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 1,
@@ -476,7 +476,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 		Holder: types.TxOutput{
 			Address: depoistHolderPrivAcc.Address,
 		},
-		Purpose: core.StakeForGuardian,
+		Purpose: core.StakeForSentry,
 	}
 	depositStakeTx.BlsPubkey = rogueBlsPriv.PublicKey()
 	depositStakeTx.BlsPop = rogueBlsPriv.PopProve()
@@ -494,13 +494,13 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	b2.HCC.BlockHash = b2.Parent
 	es.addBlock(b2)
 
-	// ----------- Guardian's deposit can omit BLS Pubkey/Pop -------- //
+	// ----------- Sentry's deposit can omit BLS Pubkey/Pop -------- //
 	depositStakeTx = &types.DepositStakeTxV1{
 		Fee: types.NewCoins(0, txFee),
 		Source: types.TxInput{
 			Address: depositSourcePrivAcc.Address,
 			Coins: types.Coins{
-				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(3), core.MinGuardianStakeDeposit),
+				DneroWei: new(big.Int).Mul(new(big.Int).SetUint64(3), core.MinSentryStakeDeposit),
 				DTokenWei: new(big.Int).SetUint64(0),
 			},
 			Sequence: 2,
@@ -508,7 +508,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 		Holder: types.TxOutput{
 			Address: depoistHolderPrivAcc.Address,
 		},
-		Purpose: core.StakeForGuardian,
+		Purpose: core.StakeForSentry,
 	}
 	signBytes = depositStakeTx.SignBytes(es.chainID)
 	depositStakeTx.Source.Signature = depositSourcePrivAcc.Sign(signBytes)
@@ -543,32 +543,32 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	b5.StateHash = es.state.Commit()
 	es.addBlock(b5)
 
-	// Validate guardian pool
-	gcp := st.NewStoreView(b0.Height, b0.StateHash, db).GetGuardianCandidatePool()
+	// Validate sentry pool
+	gcp := st.NewStoreView(b0.Height, b0.StateHash, db).GetSentryCandidatePool()
 	log.Infof("gcp for block #0: %v", gcp)
 	assert.Equal(0, gcp.Len())
 
-	gcp = st.NewStoreView(b1.Height, b1.StateHash, db).GetGuardianCandidatePool()
+	gcp = st.NewStoreView(b1.Height, b1.StateHash, db).GetSentryCandidatePool()
 	log.Infof("gcp for block #1: %v", gcp)
 	assert.Equal(1, gcp.Len())
-	assert.Equal(0, gcp.SortedGuardians[0].TotalStake().Cmp(
-		new(big.Int).Mul(new(big.Int).SetUint64(1), core.MinGuardianStakeDeposit)))
+	assert.Equal(0, gcp.SortedSentrys[0].TotalStake().Cmp(
+		new(big.Int).Mul(new(big.Int).SetUint64(1), core.MinSentryStakeDeposit)))
 
-	// Guardian's BLS Pubkey in record should not be changed after first deposit.
-	gcp2 := st.NewStoreView(b2.Height, b2.StateHash, db).GetGuardianCandidatePool()
+	// Sentry's BLS Pubkey in record should not be changed after first deposit.
+	gcp2 := st.NewStoreView(b2.Height, b2.StateHash, db).GetSentryCandidatePool()
 	log.Infof("gcp for block #2: %v", gcp2)
 	assert.Equal(1, gcp2.Len())
-	assert.Equal(0, gcp2.SortedGuardians[0].TotalStake().Cmp(
-		new(big.Int).Mul(new(big.Int).SetUint64(3), core.MinGuardianStakeDeposit)))
-	assert.Equal(gcp.SortedGuardians[0].Pubkey, gcp2.SortedGuardians[0].Pubkey)
+	assert.Equal(0, gcp2.SortedSentrys[0].TotalStake().Cmp(
+		new(big.Int).Mul(new(big.Int).SetUint64(3), core.MinSentryStakeDeposit)))
+	assert.Equal(gcp.SortedSentrys[0].Pubkey, gcp2.SortedSentrys[0].Pubkey)
 
-	// Guardian's BLS Pubkey in record should not be changed after first deposit.
-	gcp3 := st.NewStoreView(b3.Height, b3.StateHash, db).GetGuardianCandidatePool()
+	// Sentry's BLS Pubkey in record should not be changed after first deposit.
+	gcp3 := st.NewStoreView(b3.Height, b3.StateHash, db).GetSentryCandidatePool()
 	log.Infof("gcp for block #3: %v", gcp3)
 	assert.Equal(1, gcp3.Len())
-	assert.Equal(0, gcp3.SortedGuardians[0].TotalStake().Cmp(
-		new(big.Int).Mul(new(big.Int).SetUint64(6), core.MinGuardianStakeDeposit)))
-	assert.Equal(gcp.SortedGuardians[0].Pubkey, gcp2.SortedGuardians[0].Pubkey)
+	assert.Equal(0, gcp3.SortedSentrys[0].TotalStake().Cmp(
+		new(big.Int).Mul(new(big.Int).SetUint64(6), core.MinSentryStakeDeposit)))
+	assert.Equal(gcp.SortedSentrys[0].Pubkey, gcp2.SortedSentrys[0].Pubkey)
 
 	// ----------------- Stake Withdrawal ----------------- //
 	srcAcc := es.state.Delivered().GetAccount(depositSourcePrivAcc.Address)
@@ -592,7 +592,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 		Holder: types.TxOutput{
 			Address: depoistHolderPrivAcc.Address,
 		},
-		Purpose: core.StakeForGuardian,
+		Purpose: core.StakeForSentry,
 	}
 	signBytes = widthrawStakeTx.SignBytes(es.chainID)
 	widthrawStakeTx.Source.Signature = depositSourcePrivAcc.Sign(signBytes)
@@ -622,13 +622,13 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	es.addBlock(b13)
 
 	// Effective stake should become 0 immediately upon withdrawal
-	gcp4 := st.NewStoreView(b11.Height, b11.StateHash, db).GetGuardianCandidatePool()
+	gcp4 := st.NewStoreView(b11.Height, b11.StateHash, db).GetSentryCandidatePool()
 	log.Infof("gcp for block #11: %v", gcp4)
 	assert.Equal(1, gcp4.Len())
 	// The 1st deposit(1*minimal) was from holder to holder , 2nd deposit(2*minimal) and 3rd deposit
 	// (3*minimal)was from source to holder.
-	assert.Equal(0, gcp4.SortedGuardians[0].TotalStake().Cmp(core.MinGuardianStakeDeposit))
-	assert.Equal(gcp.SortedGuardians[0].Pubkey, gcp2.SortedGuardians[0].Pubkey)
+	assert.Equal(0, gcp4.SortedSentrys[0].TotalStake().Cmp(core.MinSentryStakeDeposit))
+	assert.Equal(gcp.SortedSentrys[0].Pubkey, gcp2.SortedSentrys[0].Pubkey)
 
 	// ----------------- Stake Return ----------------- //
 	srcAcc = es.state.Delivered().GetAccount(depositSourcePrivAcc.Address)
@@ -674,7 +674,7 @@ func TestGuardianStakeUpdate(t *testing.T) {
 	returnedCoins := balance3.Minus(balance2)
 	// The 1st deposit(1*minimal) was from holder to holder , 2nd deposit(2*minimal) and 3rd deposit
 	// (3*minimal)was from source to holder.
-	assert.Equal(0, returnedCoins.DneroWei.Cmp(new(big.Int).Mul(new(big.Int).SetUint64(5), core.MinGuardianStakeDeposit)))
+	assert.Equal(0, returnedCoins.DneroWei.Cmp(new(big.Int).Mul(new(big.Int).SetUint64(5), core.MinSentryStakeDeposit)))
 	assert.True(returnedCoins.DTokenWei.Cmp(core.Zero) == 0)
 	log.Infof("Returned coins: %v", returnedCoins)
 }

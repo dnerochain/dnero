@@ -21,12 +21,12 @@ import (
 // AggregatedVotes represents votes on a block.
 type AggregatedVotes struct {
 	Block      common.Hash    // Hash of the block.
-	Gcp        common.Hash    // Hash of guardian candidate pool.
+	Gcp        common.Hash    // Hash of sentry candidate pool.
 	Multiplies []uint32       // Multiplies of each signer.
 	Signature  *bls.Signature // Aggregated signiature.
 }
 
-func NewAggregateVotes(block common.Hash, gcp *GuardianCandidatePool) *AggregatedVotes {
+func NewAggregateVotes(block common.Hash, gcp *SentryCandidatePool) *AggregatedVotes {
 	return &AggregatedVotes{
 		Block:      block,
 		Gcp:        gcp.Hash(),
@@ -92,7 +92,7 @@ func (a *AggregatedVotes) Merge(b *AggregatedVotes) (*AggregatedVotes, error) {
 	}, nil
 }
 
-// Abs returns the number of voted guardians in the vote
+// Abs returns the number of voted sentrys in the vote
 func (a *AggregatedVotes) Abs() int {
 	ret := 0
 	for i := 0; i < len(a.Multiplies); i++ {
@@ -115,7 +115,7 @@ func (a *AggregatedVotes) Pick(b *AggregatedVotes) (*AggregatedVotes, error) {
 }
 
 // Validate verifies the voteset.
-func (a *AggregatedVotes) Validate(gcp *GuardianCandidatePool) result.Result {
+func (a *AggregatedVotes) Validate(gcp *SentryCandidatePool) result.Result {
 	if gcp.Hash() != a.Gcp {
 		return result.Error("gcp hash mismatch: gcp.Hash(): %s, vote.Gcp: %s", gcp.Hash().Hex(), a.Gcp.Hex())
 	}
@@ -151,86 +151,86 @@ func (a *AggregatedVotes) Copy() *AggregatedVotes {
 }
 
 //
-// ------- GuardianCandidatePool ------- //
+// ------- SentryCandidatePool ------- //
 //
 
 var (
-	MinGuardianStakeDeposit *big.Int
+	MinSentryStakeDeposit *big.Int
 
-	MinGuardianStakeDeposit1000 *big.Int
+	MinSentryStakeDeposit1000 *big.Int
 )
 
 func init() {
 	// Each stake deposit needs to be at least 10,000 Dnero
-	MinGuardianStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(10000), new(big.Int).SetUint64(1e18))
+	MinSentryStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(10000), new(big.Int).SetUint64(1e18))
 
-	// Lowering the guardian stake threshold to 1,000 Dnero
-	MinGuardianStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
+	// Lowering the sentry stake threshold to 1,000 Dnero
+	MinSentryStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
 
 }
 
-type GuardianCandidatePool struct {
-	SortedGuardians []*Guardian // Guardians sorted by holder address.
+type SentryCandidatePool struct {
+	SortedSentrys []*Sentry // Sentrys sorted by holder address.
 }
 
-// NewGuardianCandidatePool creates a new instance of GuardianCandidatePool.
-func NewGuardianCandidatePool() *GuardianCandidatePool {
-	return &GuardianCandidatePool{
-		SortedGuardians: []*Guardian{},
+// NewSentryCandidatePool creates a new instance of SentryCandidatePool.
+func NewSentryCandidatePool() *SentryCandidatePool {
+	return &SentryCandidatePool{
+		SortedSentrys: []*Sentry{},
 	}
 }
 
-// Add inserts guardian into the pool; returns false if guardian is already added.
-func (gcp *GuardianCandidatePool) Add(g *Guardian) bool {
+// Add inserts sentry into the pool; returns false if sentry is already added.
+func (gcp *SentryCandidatePool) Add(g *Sentry) bool {
 	k := sort.Search(gcp.Len(), func(i int) bool {
-		return bytes.Compare(gcp.SortedGuardians[i].Holder.Bytes(), g.Holder.Bytes()) >= 0
+		return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), g.Holder.Bytes()) >= 0
 	})
 
 	if k == gcp.Len() {
-		gcp.SortedGuardians = append(gcp.SortedGuardians, g)
+		gcp.SortedSentrys = append(gcp.SortedSentrys, g)
 		return true
 	}
 
-	// Guardian is already added.
-	if gcp.SortedGuardians[k].Holder == g.Holder {
+	// Sentry is already added.
+	if gcp.SortedSentrys[k].Holder == g.Holder {
 		return false
 	}
-	gcp.SortedGuardians = append(gcp.SortedGuardians, nil)
-	copy(gcp.SortedGuardians[k+1:], gcp.SortedGuardians[k:])
-	gcp.SortedGuardians[k] = g
+	gcp.SortedSentrys = append(gcp.SortedSentrys, nil)
+	copy(gcp.SortedSentrys[k+1:], gcp.SortedSentrys[k:])
+	gcp.SortedSentrys[k] = g
 	return true
 }
 
-// Remove removes a guardian from the pool; returns false if guardian is not found.
-func (gcp *GuardianCandidatePool) Remove(g common.Address) bool {
+// Remove removes a sentry from the pool; returns false if sentry is not found.
+func (gcp *SentryCandidatePool) Remove(g common.Address) bool {
 	k := sort.Search(gcp.Len(), func(i int) bool {
-		return bytes.Compare(gcp.SortedGuardians[i].Holder.Bytes(), g.Bytes()) >= 0
+		return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), g.Bytes()) >= 0
 	})
 
-	if k == gcp.Len() || bytes.Compare(gcp.SortedGuardians[k].Holder.Bytes(), g.Bytes()) != 0 {
+	if k == gcp.Len() || bytes.Compare(gcp.SortedSentrys[k].Holder.Bytes(), g.Bytes()) != 0 {
 		return false
 	}
-	gcp.SortedGuardians = append(gcp.SortedGuardians[:k], gcp.SortedGuardians[k+1:]...)
+	gcp.SortedSentrys = append(gcp.SortedSentrys[:k], gcp.SortedSentrys[k+1:]...)
 	return true
 }
 
 // Contains checks if given address is in the pool.
-func (gcp *GuardianCandidatePool) Contains(g common.Address) bool {
+func (gcp *SentryCandidatePool) Contains(g common.Address) bool {
 	k := sort.Search(gcp.Len(), func(i int) bool {
-		return bytes.Compare(gcp.SortedGuardians[i].Holder.Bytes(), g.Bytes()) >= 0
+		return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), g.Bytes()) >= 0
 	})
 
-	if k == gcp.Len() || gcp.SortedGuardians[k].Holder != g {
+	if k == gcp.Len() || gcp.SortedSentrys[k].Holder != g {
 		return false
 	}
 	return true
 }
 
-// WithStake returns a new pool with withdrawn guardians filtered out.
-func (gcp *GuardianCandidatePool) WithStake() *GuardianCandidatePool {
-	ret := NewGuardianCandidatePool()
-	for _, g := range gcp.SortedGuardians {
-		// Skip if guardian dons't have non-withdrawn stake
+// WithStake returns a new pool with withdrawn sentrys filtered out.
+func (gcp *SentryCandidatePool) WithStake() *SentryCandidatePool {
+	ret := NewSentryCandidatePool()
+	for _, g := range gcp.SortedSentrys {
+		// Skip if sentry dons't have non-withdrawn stake
 		hasStake := false
 		for _, stake := range g.Stakes {
 			if !stake.Withdrawn {
@@ -248,8 +248,8 @@ func (gcp *GuardianCandidatePool) WithStake() *GuardianCandidatePool {
 }
 
 // Index returns index of a public key in the pool. Returns -1 if not found.
-func (gcp *GuardianCandidatePool) Index(pubkey *bls.PublicKey) int {
-	for i, g := range gcp.SortedGuardians {
+func (gcp *SentryCandidatePool) Index(pubkey *bls.PublicKey) int {
+	for i, g := range gcp.SortedSentrys {
 		if pubkey.Equals(g.Pubkey) {
 			return i
 		}
@@ -257,29 +257,29 @@ func (gcp *GuardianCandidatePool) Index(pubkey *bls.PublicKey) int {
 	return -1
 }
 
-// PubKeys exports guardians' public keys.
-func (gcp *GuardianCandidatePool) PubKeys() []*bls.PublicKey {
+// PubKeys exports sentrys' public keys.
+func (gcp *SentryCandidatePool) PubKeys() []*bls.PublicKey {
 	ret := make([]*bls.PublicKey, gcp.Len())
-	for i, g := range gcp.SortedGuardians {
+	for i, g := range gcp.SortedSentrys {
 		ret[i] = g.Pubkey
 	}
 	return ret
 }
 
-// Implements sort.Interface for Guardians based on
+// Implements sort.Interface for Sentrys based on
 // the Address field.
-func (gcp *GuardianCandidatePool) Len() int {
-	return len(gcp.SortedGuardians)
+func (gcp *SentryCandidatePool) Len() int {
+	return len(gcp.SortedSentrys)
 }
-func (gcp *GuardianCandidatePool) Swap(i, j int) {
-	gcp.SortedGuardians[i], gcp.SortedGuardians[j] = gcp.SortedGuardians[j], gcp.SortedGuardians[i]
+func (gcp *SentryCandidatePool) Swap(i, j int) {
+	gcp.SortedSentrys[i], gcp.SortedSentrys[j] = gcp.SortedSentrys[j], gcp.SortedSentrys[i]
 }
-func (gcp *GuardianCandidatePool) Less(i, j int) bool {
-	return bytes.Compare(gcp.SortedGuardians[i].Holder.Bytes(), gcp.SortedGuardians[j].Holder.Bytes()) < 0
+func (gcp *SentryCandidatePool) Less(i, j int) bool {
+	return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), gcp.SortedSentrys[j].Holder.Bytes()) < 0
 }
 
 // Hash calculates the hash of gcp.
-func (gcp *GuardianCandidatePool) Hash() common.Hash {
+func (gcp *SentryCandidatePool) Hash() common.Hash {
 	raw, err := rlp.EncodeToBytes(gcp)
 	if err != nil {
 		logger.Panic(err)
@@ -287,17 +287,17 @@ func (gcp *GuardianCandidatePool) Hash() common.Hash {
 	return crypto.Keccak256Hash(raw)
 }
 
-func (gcp *GuardianCandidatePool) DepositStake(source common.Address, holder common.Address, amount *big.Int, pubkey *bls.PublicKey, blockHeight uint64) (err error) {
-	minGuardianStake := MinGuardianStakeDeposit
+func (gcp *SentryCandidatePool) DepositStake(source common.Address, holder common.Address, amount *big.Int, pubkey *bls.PublicKey, blockHeight uint64) (err error) {
+	minSentryStake := MinSentryStakeDeposit
 	//if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 { //StakeDeposit Fork Removed
-		//minGuardianStake = MinGuardianStakeDeposit1000
+		//minSentryStake = MinSentryStakeDeposit1000
 	//}
-	if amount.Cmp(minGuardianStake) < 0 {
+	if amount.Cmp(minSentryStake) < 0 {
 		return fmt.Errorf("Insufficient stake: %v", amount)
 	}
 
 	matchedHolderFound := false
-	for _, candidate := range gcp.SortedGuardians {
+	for _, candidate := range gcp.SortedSentrys {
 		if candidate.Holder == holder {
 			matchedHolderFound = true
 			err = candidate.depositStake(source, amount)
@@ -309,18 +309,18 @@ func (gcp *GuardianCandidatePool) DepositStake(source common.Address, holder com
 	}
 
 	if !matchedHolderFound {
-		newGuardian := &Guardian{
+		newSentry := &Sentry{
 			StakeHolder: newStakeHolder(holder, []*Stake{newStake(source, amount)}),
 			Pubkey:      pubkey,
 		}
-		gcp.Add(newGuardian)
+		gcp.Add(newSentry)
 	}
 	return nil
 }
 
-func (gcp *GuardianCandidatePool) WithdrawStake(source common.Address, holder common.Address, currentHeight uint64) error {
+func (gcp *SentryCandidatePool) WithdrawStake(source common.Address, holder common.Address, currentHeight uint64) error {
 	matchedHolderFound := false
-	for _, g := range gcp.SortedGuardians {
+	for _, g := range gcp.SortedSentrys {
 		if g.Holder == holder {
 			matchedHolderFound = true
 			err := g.withdrawStake(source, currentHeight)
@@ -337,13 +337,13 @@ func (gcp *GuardianCandidatePool) WithdrawStake(source common.Address, holder co
 	return nil
 }
 
-func (gcp *GuardianCandidatePool) ReturnStakes(currentHeight uint64) []*Stake {
+func (gcp *SentryCandidatePool) ReturnStakes(currentHeight uint64) []*Stake {
 	returnedStakes := []*Stake{}
 
 	// need to iterate in the reverse order, since we may delete elemements
 	// from the slice while iterating through it
 	for cidx := gcp.Len() - 1; cidx >= 0; cidx-- {
-		g := gcp.SortedGuardians[cidx]
+		g := gcp.SortedSentrys[cidx]
 		numStakeSources := len(g.Stakes)
 		for sidx := numStakeSources - 1; sidx >= 0; sidx-- { // similar to the outer loop, need to iterate in the reversed order
 			stake := g.Stakes[sidx]
@@ -367,14 +367,14 @@ func (gcp *GuardianCandidatePool) ReturnStakes(currentHeight uint64) []*Stake {
 }
 
 //
-// ------- Guardian ------- //
+// ------- Sentry ------- //
 //
 
-type Guardian struct {
+type Sentry struct {
 	*StakeHolder
 	Pubkey *bls.PublicKey `json:"-"`
 }
 
-func (g *Guardian) String() string {
+func (g *Sentry) String() string {
 	return fmt.Sprintf("{holder: %v, pubkey: %v, stakes :%v}", g.Holder, g.Pubkey.String(), g.Stakes)
 }

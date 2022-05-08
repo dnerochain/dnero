@@ -313,13 +313,13 @@ func (sv *StoreView) UpdateValidatorCandidatePool(vcp *core.ValidatorCandidatePo
 	sv.Set(ValidatorCandidatePoolKey(), vcpBytes)
 }
 
-// GetGuradianCandidatePool gets the guardian candidate pool.
-func (sv *StoreView) GetGuardianCandidatePool() *core.GuardianCandidatePool {
-	data := sv.Get(GuardianCandidatePoolKey())
+// GetGuradianCandidatePool gets the sentry candidate pool.
+func (sv *StoreView) GetSentryCandidatePool() *core.SentryCandidatePool {
+	data := sv.Get(SentryCandidatePoolKey())
 	if data == nil || len(data) == 0 {
-		return core.NewGuardianCandidatePool()
+		return core.NewSentryCandidatePool()
 	}
-	gcp := &core.GuardianCandidatePool{}
+	gcp := &core.SentryCandidatePool{}
 	err := types.FromBytes(data, gcp)
 	if err != nil {
 		log.Panicf("Error reading validator candidate pool %X, error: %v",
@@ -328,14 +328,14 @@ func (sv *StoreView) GetGuardianCandidatePool() *core.GuardianCandidatePool {
 	return gcp
 }
 
-// UpdateGuardianCandidatePool updates the guardian candidate pool.
-func (sv *StoreView) UpdateGuardianCandidatePool(gcp *core.GuardianCandidatePool) {
+// UpdateSentryCandidatePool updates the sentry candidate pool.
+func (sv *StoreView) UpdateSentryCandidatePool(gcp *core.SentryCandidatePool) {
 	gcpBytes, err := types.ToBytes(gcp)
 	if err != nil {
-		log.Panicf("Error writing guardian candidate pool %v, error: %v",
+		log.Panicf("Error writing sentry candidate pool %v, error: %v",
 			gcp, err.Error())
 	}
-	sv.Set(GuardianCandidatePoolKey(), gcpBytes)
+	sv.Set(SentryCandidatePoolKey(), gcpBytes)
 }
 
 // GetStakeTransactionHeightList gets the heights of blocks that contain stake related transactions
@@ -427,7 +427,7 @@ func (sv *StoreView) GetDneroBalance(addr common.Address) *big.Int {
 	return sv.GetOrCreateAccount(addr).Balance.DneroWei
 }
 
-// GetDneroStake returns the total amount of DneroWei the address staked to validators and/or guardians
+// GetDneroStake returns the total amount of DneroWei the address staked to validators and/or sentrys
 func (sv *StoreView) GetDneroStake(addr common.Address) *big.Int {
 	totalStake := big.NewInt(0)
 
@@ -443,8 +443,8 @@ func (sv *StoreView) GetDneroStake(addr common.Address) *big.Int {
 		}
 	}
 
-	gcp := sv.GetGuardianCandidatePool()
-	for _, g := range gcp.SortedGuardians {
+	gcp := sv.GetSentryCandidatePool()
+	for _, g := range gcp.SortedSentrys {
 		for _, stake := range g.Stakes {
 			if stake.Source == addr {
 				if stake.Withdrawn {

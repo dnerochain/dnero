@@ -32,7 +32,7 @@ type StateDB interface {
 	GetBalance(common.Address) *big.Int
 
 	GetDneroBalance(common.Address) *big.Int // GetDneroBalance returns the DneroWei balance of the given address
-	GetDneroStake(common.Address) *big.Int   // GetDneroStake returns the total amount of DneroWei the address staked to validators and/or guardians
+	GetDneroStake(common.Address) *big.Int   // GetDneroStake returns the total amount of DneroWei the address staked to validators and/or sentrys
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)

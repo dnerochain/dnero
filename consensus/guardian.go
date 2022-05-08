@@ -17,7 +17,7 @@ const (
 	maxRound               = 10
 )
 
-type GuardianEngine struct {
+type SentryEngine struct {
 	logger *log.Entry
 
 	engine  *ConsensusEngine
@@ -28,7 +28,7 @@ type GuardianEngine struct {
 	round       uint32
 	currVote    *core.AggregatedVotes
 	nextVote    *core.AggregatedVotes
-	gcp         *core.GuardianCandidatePool
+	gcp         *core.SentryCandidatePool
 	gcpHash     common.Hash
 	signerIndex int // Signer's index in current gcp
 
@@ -36,9 +36,9 @@ type GuardianEngine struct {
 	mu       *sync.Mutex
 }
 
-func NewGuardianEngine(c *ConsensusEngine, privateKey *bls.SecretKey) *GuardianEngine {
-	return &GuardianEngine{
-		logger:  util.GetLoggerForModule("guardian"),
+func NewSentryEngine(c *ConsensusEngine, privateKey *bls.SecretKey) *SentryEngine {
+	return &SentryEngine{
+		logger:  util.GetLoggerForModule("sentry"),
 		engine:  c,
 		privKey: privateKey,
 
@@ -47,11 +47,11 @@ func NewGuardianEngine(c *ConsensusEngine, privateKey *bls.SecretKey) *GuardianE
 	}
 }
 
-func (g *GuardianEngine) isGuardian() bool {
+func (g *SentryEngine) isSentry() bool {
 	return g.signerIndex >= 0
 }
 
-func (g *GuardianEngine) StartNewBlock(block common.Hash) {
+func (g *SentryEngine) StartNewBlock(block common.Hash) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -60,7 +60,7 @@ func (g *GuardianEngine) StartNewBlock(block common.Hash) {
 	g.currVote = nil
 	g.round = 1
 
-	gcp, err := g.engine.GetLedger().GetGuardianCandidatePool(block)
+	gcp, err := g.engine.GetLedger().GetSentryCandidatePool(block)
 	if err != nil {
 		// Should not happen
 		g.logger.Panic(err)
@@ -75,7 +75,7 @@ func (g *GuardianEngine) StartNewBlock(block common.Hash) {
 		"signerIndex": g.signerIndex,
 	}).Debug("Starting new block")
 
-	if g.isGuardian() {
+	if g.isSentry() {
 		g.nextVote = core.NewAggregateVotes(block, gcp)
 		g.nextVote.Sign(g.privKey, g.signerIndex)
 		g.currVote = g.nextVote.Copy()
@@ -86,7 +86,7 @@ func (g *GuardianEngine) StartNewBlock(block common.Hash) {
 
 }
 
-func (g *GuardianEngine) StartNewRound() {
+func (g *SentryEngine) StartNewRound() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -98,25 +98,25 @@ func (g *GuardianEngine) StartNewRound() {
 	}
 }
 
-func (g *GuardianEngine) GetVoteToBroadcast() *core.AggregatedVotes {
+func (g *SentryEngine) GetVoteToBroadcast() *core.AggregatedVotes {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	return g.currVote
 }
 
-func (g *GuardianEngine) GetBestVote() *core.AggregatedVotes {
+func (g *SentryEngine) GetBestVote() *core.AggregatedVotes {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	return g.nextVote
 }
 
-func (g *GuardianEngine) Start(ctx context.Context) {
+func (g *SentryEngine) Start(ctx context.Context) {
 	go g.mainLoop(ctx)
 }
 
-func (g *GuardianEngine) mainLoop(ctx context.Context) {
+func (g *SentryEngine) mainLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -129,7 +129,7 @@ func (g *GuardianEngine) mainLoop(ctx context.Context) {
 	}
 }
 
-func (g *GuardianEngine) processVote(vote *core.AggregatedVotes) {
+func (g *SentryEngine) processVote(vote *core.AggregatedVotes) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -144,7 +144,7 @@ func (g *GuardianEngine) processVote(vote *core.AggregatedVotes) {
 
 	var candidate *core.AggregatedVotes
 	var err error
-	if !g.isGuardian() && viper.GetBool(common.CfgConsensusPassThroughGuardianVote) {
+	if !g.isSentry() && viper.GetBool(common.CfgConsensusPassThroughSentryVote) {
 		candidate, err = g.nextVote.Pick(vote)
 		if err != nil {
 			g.logger.WithFields(log.Fields{
@@ -157,7 +157,7 @@ func (g *GuardianEngine) processVote(vote *core.AggregatedVotes) {
 				"g.nextVote.GCP":        g.nextVote.Gcp.Hex(),
 				"g.nextVote.Block":      g.nextVote.Block.Hex(),
 				"error":                 err.Error(),
-			}).Info("Failed to pick guardian vote")
+			}).Info("Failed to pick sentry vote")
 		}
 		if candidate == g.nextVote {
 			// Incoming vote is not better than the current nextVote.
@@ -180,7 +180,7 @@ func (g *GuardianEngine) processVote(vote *core.AggregatedVotes) {
 				"g.nextVote.GCP":        g.nextVote.Gcp.Hex(),
 				"g.nextVote.Block":      g.nextVote.Block.Hex(),
 				"error":                 err.Error(),
-			}).Info("Failed to merge guardian vote")
+			}).Info("Failed to merge sentry vote")
 		}
 		if candidate == nil {
 			// Incoming vote is subset of the current nextVote.
@@ -209,26 +209,26 @@ func (g *GuardianEngine) processVote(vote *core.AggregatedVotes) {
 		"local.block":           g.block.Hex(),
 		"local.round":           g.round,
 		"local.vote.Multiplies": g.nextVote.Multiplies,
-	}).Info("New guardian vote")
+	}).Info("New sentry vote")
 }
 
-func (g *GuardianEngine) HandleVote(vote *core.AggregatedVotes) {
+func (g *SentryEngine) HandleVote(vote *core.AggregatedVotes) {
 	select {
 	case g.incoming <- vote:
 		return
 	default:
-		g.logger.Debug("GuardianEngine queue is full, discarding vote: %v", vote)
+		g.logger.Debug("SentryEngine queue is full, discarding vote: %v", vote)
 	}
 }
 
-func (g *GuardianEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
+func (g *SentryEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 	if g.block.IsEmpty() {
 		g.logger.WithFields(log.Fields{
 			"local.block":    g.block.Hex(),
 			"local.round":    g.round,
 			"vote.block":     vote.Block.Hex(),
 			"vote.Mutiplies": vote.Multiplies,
-		}).Debug("Ignoring guardian vote: local not ready")
+		}).Debug("Ignoring sentry vote: local not ready")
 		return
 	}
 	if vote.Block != g.block {
@@ -237,7 +237,7 @@ func (g *GuardianEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 			"local.round":    g.round,
 			"vote.block":     vote.Block.Hex(),
 			"vote.Mutiplies": vote.Multiplies,
-		}).Debug("Ignoring guardian vote: block hash does not match with local candidate")
+		}).Debug("Ignoring sentry vote: block hash does not match with local candidate")
 		return
 	}
 	if vote.Gcp != g.gcpHash {
@@ -248,7 +248,7 @@ func (g *GuardianEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 			"vote.Mutiplies": vote.Multiplies,
 			"vote.gcp":       vote.Gcp.Hex(),
 			"local.gcp":      g.gcpHash.Hex(),
-		}).Debug("Ignoring guardian vote: gcp hash does not match with local value")
+		}).Debug("Ignoring sentry vote: gcp hash does not match with local value")
 		return
 	}
 	if !g.checkMultipliesForRound(vote, g.round) {
@@ -259,7 +259,7 @@ func (g *GuardianEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 			"vote.Mutiplies": vote.Multiplies,
 			"vote.gcp":       vote.Gcp.Hex(),
 			"local.gcp":      g.gcpHash.Hex(),
-		}).Debug("Ignoring guardian vote: mutiplies exceed limit for round")
+		}).Debug("Ignoring sentry vote: mutiplies exceed limit for round")
 		return
 	}
 	if result := vote.Validate(g.gcp); result.IsError() {
@@ -271,14 +271,14 @@ func (g *GuardianEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 			"vote.gcp":       vote.Gcp.Hex(),
 			"local.gcp":      g.gcpHash.Hex(),
 			"error":          result.Message,
-		}).Debug("Ignoring guardian vote: invalid vote")
+		}).Debug("Ignoring sentry vote: invalid vote")
 		return
 	}
 	res = true
 	return
 }
 
-func (g *GuardianEngine) checkMultipliesForRound(vote *core.AggregatedVotes, k uint32) bool {
+func (g *SentryEngine) checkMultipliesForRound(vote *core.AggregatedVotes, k uint32) bool {
 	// for _, m := range vote.Multiplies {
 	// 	if m > g.maxMultiply(k) {
 	// 		return false
@@ -287,6 +287,6 @@ func (g *GuardianEngine) checkMultipliesForRound(vote *core.AggregatedVotes, k u
 	return true
 }
 
-func (g *GuardianEngine) maxMultiply(k uint32) uint32 {
+func (g *SentryEngine) maxMultiply(k uint32) uint32 {
 	return 1 << (k * maxLogNeighbors)
 }

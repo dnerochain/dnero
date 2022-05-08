@@ -12,18 +12,18 @@ import (
 	"github.com/dnerochain/dnero/crypto"
 )
 
-func createTestGuardianPool(size int) (*GuardianCandidatePool, map[common.Address]*bls.SecretKey) {
-	pool := NewGuardianCandidatePool()
+func createTestSentryPool(size int) (*SentryCandidatePool, map[common.Address]*bls.SecretKey) {
+	pool := NewSentryCandidatePool()
 	sks := make(map[common.Address]*bls.SecretKey)
 	for i := 0; i < size; i++ {
 		_, pub, _ := crypto.GenerateKeyPair()
 		blsKey, _ := bls.RandKey()
-		g := &Guardian{
+		g := &Sentry{
 			StakeHolder: &StakeHolder{
 				Holder: pub.Address(),
 				Stakes: []*Stake{&Stake{
 					Source:       pub.Address(),
-					Amount:       MinGuardianStakeDeposit,
+					Amount:       MinSentryStakeDeposit,
 					Withdrawn:    false,
 					ReturnHeight: 99999999999,
 				}},
@@ -36,45 +36,45 @@ func createTestGuardianPool(size int) (*GuardianCandidatePool, map[common.Addres
 	return pool, sks
 }
 
-func isSorted(pl *GuardianCandidatePool) bool {
-	g := pl.SortedGuardians[0]
+func isSorted(pl *SentryCandidatePool) bool {
+	g := pl.SortedSentrys[0]
 	for i := 1; i < pl.Len(); i++ {
-		if bytes.Compare(g.Holder.Bytes(), pl.SortedGuardians[i].Holder.Bytes()) >= 0 {
+		if bytes.Compare(g.Holder.Bytes(), pl.SortedSentrys[i].Holder.Bytes()) >= 0 {
 			return false
 		}
 	}
 	return true
 }
 
-func TestGuardianPool(t *testing.T) {
+func TestSentryPool(t *testing.T) {
 	require := require.New(t)
 
-	pool, _ := createTestGuardianPool(10)
+	pool, _ := createTestSentryPool(10)
 
 	// Should be sorted.
 	if !isSorted(pool) {
-		t.Fatal("Guardian pool is not sorted")
+		t.Fatal("Sentry pool is not sorted")
 	}
 
 	// Should not add duplicate.
-	newGuardian := &Guardian{
+	newSentry := &Sentry{
 		StakeHolder: &StakeHolder{
-			Holder: pool.SortedGuardians[3].Holder,
+			Holder: pool.SortedSentrys[3].Holder,
 		},
 	}
-	if pool.Add(newGuardian) {
-		t.Fatal("Should not add duplicate guardian")
+	if pool.Add(newSentry) {
+		t.Fatal("Should not add duplicate sentry")
 	}
 
-	// Should add new guardian.
+	// Should add new sentry.
 	_, pub, _ := crypto.GenerateKeyPair()
 	blsKey, _ := bls.RandKey()
-	g := &Guardian{
+	g := &Sentry{
 		StakeHolder: &StakeHolder{
 			Holder: pub.Address(),
 			Stakes: []*Stake{&Stake{
 				Source:       pub.Address(),
-				Amount:       MinGuardianStakeDeposit,
+				Amount:       MinSentryStakeDeposit,
 				Withdrawn:    false,
 				ReturnHeight: 99999999999,
 			}},
@@ -82,50 +82,50 @@ func TestGuardianPool(t *testing.T) {
 		Pubkey: blsKey.PublicKey(),
 	}
 	if !pool.Add(g) || pool.Len() != 11 {
-		t.Fatal("Should add new guardian")
+		t.Fatal("Should add new sentry")
 	}
 	if !isSorted(pool) {
 		t.Fatal("Should be sorted after add")
 	}
 
-	// Should remove guardian.
-	toRemove := pool.SortedGuardians[5].Holder
-	toRemoveBlsPub := pool.SortedGuardians[5].Pubkey
+	// Should remove sentry.
+	toRemove := pool.SortedSentrys[5].Holder
+	toRemoveBlsPub := pool.SortedSentrys[5].Pubkey
 	if !pool.Remove(toRemove) || pool.Len() != 10 {
-		t.Fatal("Should remove guardian")
+		t.Fatal("Should remove sentry")
 	}
 	if !isSorted(pool) {
 		t.Fatal("Should be sorted after remove")
 	}
 
-	// Should return false when removing non-existent guardian.
+	// Should return false when removing non-existent sentry.
 	if pool.Remove(toRemove) || pool.Len() != 10 {
-		t.Fatal("Should not remove non-existent guardian")
+		t.Fatal("Should not remove non-existent sentry")
 	}
 
-	// Should return -1 for removed guardian.
-	require.Equal(-1, pool.Index(toRemoveBlsPub), "Should return -1 for removed guardian")
+	// Should return -1 for removed sentry.
+	require.Equal(-1, pool.Index(toRemoveBlsPub), "Should return -1 for removed sentry")
 
-	toWithdrawnPub := pool.SortedGuardians[3].Pubkey
-	nextPub := pool.SortedGuardians[4].Pubkey
+	toWithdrawnPub := pool.SortedSentrys[3].Pubkey
+	nextPub := pool.SortedSentrys[4].Pubkey
 	require.Equal(3, pool.WithStake().Index(toWithdrawnPub))
 	require.Equal(4, pool.WithStake().Index(nextPub))
-	pool.SortedGuardians[3].Stakes[0].Withdrawn = true
-	// Should return -1 for withdrawn guardian.
+	pool.SortedSentrys[3].Stakes[0].Withdrawn = true
+	// Should return -1 for withdrawn sentry.
 	require.Equal(-1, pool.WithStake().Index(toWithdrawnPub))
-	// Should skip withdrawn guardian.
+	// Should skip withdrawn sentry.
 	require.Equal(3, pool.WithStake().Index(nextPub))
 }
 
 func TestAggregateVote(t *testing.T) {
-	pool, sks := createTestGuardianPool(10)
+	pool, sks := createTestSentryPool(10)
 
 	bh := common.BytesToHash([]byte{12})
 	vote1 := NewAggregateVotes(bh, pool)
 
-	g1 := pool.SortedGuardians[0].Holder
+	g1 := pool.SortedSentrys[0].Holder
 
-	// Guardian 1 signs a vote.
+	// Sentry 1 signs a vote.
 	success := vote1.Sign(sks[g1], 0)
 	if !success {
 		t.Fatal("Should sign")
@@ -134,9 +134,9 @@ func TestAggregateVote(t *testing.T) {
 		t.Fatal("Should validate", res.Message)
 	}
 
-	// Guardian 2 signs a vote.
+	// Sentry 2 signs a vote.
 	vote2 := NewAggregateVotes(bh, pool)
-	g2 := pool.SortedGuardians[1].Holder
+	g2 := pool.SortedSentrys[1].Holder
 	success = vote2.Sign(sks[g2], 1)
 	if !success {
 		t.Fatal("Should sign")
@@ -172,14 +172,14 @@ func TestAggregateVote(t *testing.T) {
 func TestAggregateVoteEncoding(t *testing.T) {
 	require := require.New(t)
 
-	pool, sks := createTestGuardianPool(10)
+	pool, sks := createTestSentryPool(10)
 
 	bh := common.BytesToHash([]byte{12})
 	vote1 := NewAggregateVotes(bh, pool)
 
-	g1 := pool.SortedGuardians[0].Holder
+	g1 := pool.SortedSentrys[0].Holder
 
-	// Guardian 1 signs a vote.
+	// Sentry 1 signs a vote.
 	success := vote1.Sign(sks[g1], 0)
 	require.True(success, "Should sign")
 

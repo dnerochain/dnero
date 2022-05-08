@@ -137,7 +137,7 @@ func (sm *SyncManager) GetChannelIDs() []common.ChannelIDEnum {
 		common.ChannelIDProposal,
 		common.ChannelIDCC,
 		common.ChannelIDVote,
-		common.ChannelIDGuardian,
+		common.ChannelIDSentry,
 	}
 }
 
@@ -603,7 +603,7 @@ func (m *SyncManager) handleDataResponse(peerID string, data *dispatcher.DataRes
 			"peer":     peerID,
 		}).Debug("Received proposal")
 		m.handleProposal(proposal)
-	case common.ChannelIDGuardian:
+	case common.ChannelIDSentry:
 		vote := &core.AggregatedVotes{}
 		err := rlp.DecodeBytes(data.Payload, vote)
 		if err != nil {
@@ -620,8 +620,8 @@ func (m *SyncManager) handleDataResponse(peerID string, data *dispatcher.DataRes
 			"vote.GCP":        vote.Gcp.Hex(),
 			"vote.Multiplies": vote.Multiplies,
 			"peer":            peerID,
-		}).Debug("Received guardian vote")
-		m.handleGuardianVote(vote)
+		}).Debug("Received sentry vote")
+		m.handleSentryVote(vote)
 	case common.ChannelIDHeader:
 		headers := &Headers{}
 		err := rlp.DecodeBytes(data.Payload, headers)
@@ -777,6 +777,6 @@ func (sm *SyncManager) handleVote(vote core.Vote) {
 	}
 }
 
-func (sm *SyncManager) handleGuardianVote(vote *core.AggregatedVotes) {
+func (sm *SyncManager) handleSentryVote(vote *core.AggregatedVotes) {
 	sm.PassdownMessage(vote)
 }

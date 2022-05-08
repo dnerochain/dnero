@@ -26,7 +26,7 @@ import (
 //		dnerocli tx deposit --chain="privatenet" --source=2E833968E5bB786Ae419c4d13189fB081Cc43bab --holder=2E833968E5bB786Ae419c4d13189fB081Cc43bab --stake=6000000 --purpose=0 --seq=7
 var depositStakeCmd = &cobra.Command{
 	Use:     "deposit",
-	Short:   "Deposit stake to a validator or guardian",
+	Short:   "Deposit stake to a validator or sentry",
 	Example: `dnerocli tx deposit --chain="privatenet" --source=2E833968E5bB786Ae419c4d13189fB081Cc43bab --holder=2E833968E5bB786Ae419c4d13189fB081Cc43bab --stake=6000000 --purpose=0 --seq=7`,
 	Run:     doDepositStakeCmd,
 }
@@ -80,22 +80,22 @@ func doDepositStakeCmd(cmd *cobra.Command, args []string) {
 			holderFlag = holderFlag[2:]
 		}
 		if len(holderFlag) != 458 {
-			utils.Error("Holder must be a valid guardian address")
+			utils.Error("Holder must be a valid sentry address")
 		}
-		guardianKeyBytes, err := hex.DecodeString(holderFlag)
+		sentryKeyBytes, err := hex.DecodeString(holderFlag)
 		if err != nil {
-			utils.Error("Failed to decode guardian address: %v\n", err)
+			utils.Error("Failed to decode sentry address: %v\n", err)
 		}
-		holderAddress = common.BytesToAddress(guardianKeyBytes[:20])
-		blsPubkey, err := bls.PublicKeyFromBytes(guardianKeyBytes[20:68])
+		holderAddress = common.BytesToAddress(sentryKeyBytes[:20])
+		blsPubkey, err := bls.PublicKeyFromBytes(sentryKeyBytes[20:68])
 		if err != nil {
 			utils.Error("Failed to decode bls Pubkey: %v\n", err)
 		}
-		blsPop, err := bls.SignatureFromBytes(guardianKeyBytes[68:164])
+		blsPop, err := bls.SignatureFromBytes(sentryKeyBytes[68:164])
 		if err != nil {
 			utils.Error("Failed to decode bls POP: %v\n", err)
 		}
-		holderSig, err := crypto.SignatureFromBytes(guardianKeyBytes[164:])
+		holderSig, err := crypto.SignatureFromBytes(sentryKeyBytes[164:])
 		if err != nil {
 			utils.Error("Failed to decode signature: %v\n", err)
 		}

@@ -12,18 +12,18 @@ import (
 	rpcc "github.com/ybbus/jsonrpc"
 )
 
-// guardianCmd retreves guardian related information from Dnero server.
+// sentryCmd retreves sentry related information from Dnero server.
 // Example:
-//		dnerocli query guardian
-var guardianCmd = &cobra.Command{
-	Use:     "guardian",
-	Short:   "Get guardian info",
-	Long:    `Get guardian status.`,
-	Example: `dnerocli query guardian`,
-	Run:     doGuardianCmd,
+//		dnerocli query sentry
+var sentryCmd = &cobra.Command{
+	Use:     "sentry",
+	Short:   "Get sentry info",
+	Long:    `Get sentry status.`,
+	Example: `dnerocli query sentry`,
+	Run:     doSentryCmd,
 }
 
-type GuardianResult struct {
+type SentryResult struct {
 	Address   string
 	BlsPubkey string
 	BlsPop    string
@@ -31,15 +31,15 @@ type GuardianResult struct {
 	Summary   string
 }
 
-func doGuardianCmd(cmd *cobra.Command, args []string) {
+func doSentryCmd(cmd *cobra.Command, args []string) {
 	client := rpcc.NewRPCClient(viper.GetString(utils.CfgRemoteRPCEndpoint))
 
-	res, err := client.Call("dnero.GetGuardianInfo", rpc.GetGuardianInfoArgs{})
+	res, err := client.Call("dnero.GetSentryInfo", rpc.GetSentryInfoArgs{})
 	if err != nil {
-		utils.Error("Failed to get guardian info: %v\n", err)
+		utils.Error("Failed to get sentry info: %v\n", err)
 	}
 	if res.Error != nil {
-		utils.Error("Failed to get guardian info: %v\n", res.Error)
+		utils.Error("Failed to get sentry info: %v\n", res.Error)
 	}
 	result := res.Result.(map[string]interface{})
 	address, ok := result["Address"].(string)
@@ -62,7 +62,7 @@ func doGuardianCmd(cmd *cobra.Command, args []string) {
 		json, err := json.MarshalIndent(res.Result, "", "    ")
 		utils.Error("Failed to parse server response: %v\n%v\n", err, string(json))
 	}
-	output := &GuardianResult{
+	output := &SentryResult{
 		Address:   address,
 		BlsPubkey: blsPubkey,
 		BlsPop:    blsPop,

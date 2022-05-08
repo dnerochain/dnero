@@ -391,7 +391,7 @@ func (c *dneroBalance) Run(evm *EVM, input []byte) ([]byte, error) {
 	return dneroBalanceBytes32, nil
 }
 
-// dneroStake retrieves the total amount of DneroWei the address staked to validators and/or guardians
+// dneroStake retrieves the total amount of DneroWei the address staked to validators and/or sentrys
 type dneroStake struct {
 }
 

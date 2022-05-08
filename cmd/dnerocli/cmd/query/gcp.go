@@ -18,7 +18,7 @@ import (
 //		dnerocli query gcp --height=10
 var gcpCmd = &cobra.Command{
 	Use:     "gcp",
-	Short:   "Get guardian candidate pool",
+	Short:   "Get sentry candidate pool",
 	Example: `dnerocli query gcp --height=10`,
 	Run:     doGcpCmd,
 }
@@ -29,10 +29,10 @@ func doGcpCmd(cmd *cobra.Command, args []string) {
 	height := heightFlag
 	res, err := client.Call("dnero.GetGcpByHeight", rpc.GetGcpByHeightArgs{Height: common.JSONUint64(height)})
 	if err != nil {
-		utils.Error("Failed to get guardian candidate pool: %v\n", err)
+		utils.Error("Failed to get sentry candidate pool: %v\n", err)
 	}
 	if res.Error != nil {
-		utils.Error("Failed to get guardian candidate pool: %v\n", res.Error)
+		utils.Error("Failed to get sentry candidate pool: %v\n", res.Error)
 	}
 	json, err := json.MarshalIndent(res.Result, "", "    ")
 	if err != nil {

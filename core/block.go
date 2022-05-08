@@ -127,7 +127,7 @@ type BlockHeader struct {
 	Height        uint64
 	Parent        common.Hash
 	HCC           CommitCertificate
-	GuardianVotes *AggregatedVotes `rlp:"nil"` // Added in DneroV1.0 fork.
+	SentryVotes *AggregatedVotes `rlp:"nil"` // Added in DneroV1.0 fork.
 	TxHash        common.Hash
 	ReceiptHash   common.Hash `json:"-"`
 	Bloom         Bloom       `json:"-"`
@@ -177,7 +177,7 @@ func (h *BlockHeader) EncodeRLP(w io.Writer) error {
 		h.Timestamp,
 		h.Proposer,
 		h.Signature,
-		h.GuardianVotes,
+		h.SentryVotes,
 	})
 
 }
@@ -258,7 +258,7 @@ func (h *BlockHeader) DecodeRLP(stream *rlp.Stream) error {
 			return err
 		}
 		if common.Bytes2Hex(raw) == "c0" {
-			h.GuardianVotes = nil
+			h.SentryVotes = nil
 		} else {
 			gvotes := &AggregatedVotes{}
 			// err = stream.Decode(gvotes)
@@ -266,7 +266,7 @@ func (h *BlockHeader) DecodeRLP(stream *rlp.Stream) error {
 			if err != nil {
 				return err
 			}
-			h.GuardianVotes = gvotes
+			h.SentryVotes = gvotes
 		}
 	}
 

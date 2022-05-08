@@ -1,10 +1,10 @@
 ## dnerocli tx withdraw
 
-withdraw stake to a validator or guardian
+withdraw stake to a validator or sentry
 
 ### Synopsis
 
-withdraw stake to a validator or guardian
+withdraw stake to a validator or sentry
 
 ```
 dnerocli tx withdraw [flags]

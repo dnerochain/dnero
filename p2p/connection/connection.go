@@ -108,7 +108,7 @@ func CreateConnection(netconn net.Conn, config ConnectionConfig) *Connection {
 	channelTransaction := createDefaultChannel(common.ChannelIDTransaction)
 	channelPeerDiscover := createDefaultChannel(common.ChannelIDPeerDiscovery)
 	channelPing := createDefaultChannel(common.ChannelIDPing)
-	channelGuardian := createDefaultChannel(common.ChannelIDGuardian)
+	channelSentry := createDefaultChannel(common.ChannelIDSentry)
 	channelNATMapping := createDefaultChannel(common.ChannelIDNATMapping)
 	channels := []*Channel{
 		&channelCheckpoint,
@@ -119,7 +119,7 @@ func CreateConnection(netconn net.Conn, config ConnectionConfig) *Connection {
 		&channelTransaction,
 		&channelPeerDiscover,
 		&channelPing,
-		&channelGuardian,
+		&channelSentry,
 		&channelNATMapping,
 	}
 

@@ -53,7 +53,7 @@ func (exec *WithdrawStakeExecutor) sanityCheck(chainID string, view *st.StoreVie
 			minTxFee).WithErrorCode(result.CodeInvalidFee)
 	}
 
-	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian) {
+	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForSentry) {
 		return result.Error("Invalid stake purpose!").
 			WithErrorCode(result.CodeInvalidStakePurpose)
 	}
@@ -94,14 +94,14 @@ func (exec *WithdrawStakeExecutor) process(chainID string, view *st.StoreView, t
 			return common.Hash{}, result.Error("Failed to withdraw stake, err: %v", err)
 		}
 		view.UpdateValidatorCandidatePool(vcp)
-	} else if tx.Purpose == core.StakeForGuardian {
-		gcp := view.GetGuardianCandidatePool()
+	} else if tx.Purpose == core.StakeForSentry {
+		gcp := view.GetSentryCandidatePool()
 		currentHeight := exec.state.Height()
 		err := gcp.WithdrawStake(sourceAddress, holderAddress, currentHeight)
 		if err != nil {
 			return common.Hash{}, result.Error("Failed to withdraw stake, err: %v", err)
 		}
-		view.UpdateGuardianCandidatePool(gcp)
+		view.UpdateSentryCandidatePool(gcp)
 	} else {
 		return common.Hash{}, result.Error("Invalid staking purpose").WithErrorCode(result.CodeInvalidStakePurpose)
 	}

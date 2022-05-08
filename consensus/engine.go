@@ -38,7 +38,7 @@ type ConsensusEngine struct {
 	dispatcher       *dispatcher.Dispatcher
 	validatorManager core.ValidatorManager
 	ledger           core.Ledger
-	guardian         *GuardianEngine
+	sentry         *SentryEngine
 
 	incoming        chan interface{}
 	finalizedBlocks chan *core.Block
@@ -53,7 +53,7 @@ type ConsensusEngine struct {
 	mu            *sync.Mutex
 	epochTimer    *time.Timer
 	proposalTimer *time.Timer
-	guardianTimer *time.Ticker
+	sentryTimer *time.Ticker
 
 	state *State
 }
@@ -84,7 +84,7 @@ func NewConsensusEngine(privateKey *crypto.PrivateKey, db store.Store, chain *bl
 	if err != nil {
 		e.logger.Panic(err)
 	}
-	e.guardian = NewGuardianEngine(e, blsKey)
+	e.sentry = NewSentryEngine(e, blsKey)
 
 	e.logger.WithFields(log.Fields{"state": e.state}).Info("Starting state")
 
@@ -144,8 +144,8 @@ func (e *ConsensusEngine) Start(ctx context.Context) {
 	//e.ledger.ResetState(lastCC.Height, lastCC.StateHash)
 	e.ledger.ResetState(lastCC.Block)
 
-	e.resetGuardianTimer()
-	e.guardian.Start(e.ctx)
+	e.resetSentryTimer()
+	e.sentry.Start(e.ctx)
 
 	e.checkSyncStatus()
 
@@ -237,8 +237,8 @@ func (e *ConsensusEngine) autoRewind(lastCC *core.ExtendedBlock) *core.ExtendedB
 func (e *ConsensusEngine) Stop() {
 	e.cancel()
 
-	if e.guardianTimer != nil {
-		e.guardianTimer.Stop()
+	if e.sentryTimer != nil {
+		e.sentryTimer.Stop()
 	}
 }
 
@@ -269,14 +269,14 @@ func (e *ConsensusEngine) mainLoop() {
 				break Epoch
 			case <-e.proposalTimer.C:
 				e.propose()
-			case <-e.guardianTimer.C:
-				v := e.guardian.GetVoteToBroadcast()
+			case <-e.sentryTimer.C:
+				v := e.sentry.GetVoteToBroadcast()
 
 				if v != nil {
-					e.guardian.logger.WithFields(log.Fields{"vote": v}).Debug("Broadcasting guardian vote")
-					e.broadcastGuardianVote(v)
+					e.sentry.logger.WithFields(log.Fields{"vote": v}).Debug("Broadcasting sentry vote")
+					e.broadcastSentryVote(v)
 				}
-				e.guardian.StartNewRound()
+				e.sentry.StartNewRound()
 			}
 		}
 	}
@@ -323,8 +323,8 @@ func (e *ConsensusEngine) processMessage(msg interface{}) (endEpoch bool) {
 		}).Debug("Received block")
 		e.handleBlock(m)
 	case *core.AggregatedVotes:
-		e.logger.WithFields(log.Fields{"guardian vote": m}).Debug("Received guardian vote")
-		e.handleGuardianVote(m)
+		e.logger.WithFields(log.Fields{"sentry vote": m}).Debug("Received sentry vote")
+		e.handleSentryVote(m)
 	default:
 		// Should not happen.
 		log.Errorf("Unknown message type: %v", m)
@@ -474,26 +474,26 @@ func (e *ConsensusEngine) validateBlock(block *core.Block, parent *core.Extended
 		return result.Error("Invalid proposer")
 	}
 
-	// Validate Guardian Votes.
-	// We allow checkpoint blocs to have nil guardian votes.
-	if block.GuardianVotes != nil && block.Height >= common.HeightEnableDneroV1 && common.IsCheckPointHeight(block.Height) {
+	// Validate Sentry Votes.
+	// We allow checkpoint blocs to have nil sentry votes.
+	if block.SentryVotes != nil && block.Height >= common.HeightEnableDneroV1 && common.IsCheckPointHeight(block.Height) {
 		// Voted block must exist.
-		lastCheckpoint, err := e.chain.FindBlock(block.GuardianVotes.Block)
+		lastCheckpoint, err := e.chain.FindBlock(block.SentryVotes.Block)
 		if err != nil {
 			e.logger.WithFields(log.Fields{
 				"block.Hash":          block.Hash().Hex(),
 				"block.Height":        block.Height,
-				"block.GuardianVotes": block.GuardianVotes.String(),
+				"block.SentryVotes": block.SentryVotes.String(),
 				"error":               err.Error(),
-			}).Warn("Guardian votes refers to non-existing block")
-			return result.Error("Block in guardian votes cannot be found")
+			}).Warn("Sentry votes refers to non-existing block")
+			return result.Error("Block in sentry votes cannot be found")
 		}
 		// // Voted block must be at previous checkpoint height.
 		// if block.Height-lastCheckpoint.Height != uint64(common.CheckpointInterval) {
 		// 	e.logger.WithFields(log.Fields{
 		// 		"block.Hash":          block.Hash().Hex(),
 		// 		"block.Height":        block.Height,
-		// 		"block.GuardianVotes": block.GuardianVotes.String(),
+		// 		"block.SentryVotes": block.SentryVotes.String(),
 		// 	}).Warn("Voted block must be at previous checkpoint height")
 		// 	return result.Error("Voted block must be at previous checkpoint height")
 		// }
@@ -502,41 +502,41 @@ func (e *ConsensusEngine) validateBlock(block *core.Block, parent *core.Extended
 			e.logger.WithFields(log.Fields{
 				"block.Hash":          block.Hash().Hex(),
 				"block.Height":        block.Height,
-				"block.GuardianVotes": block.GuardianVotes.String(),
+				"block.SentryVotes": block.SentryVotes.String(),
 				"lastCheckpoint":      lastCheckpoint.Hash().Hex(),
 			}).Warn("Block is not descendant of checkpoint")
-			return result.Error("Block is not descendant of checkpoint in guardian votes")
+			return result.Error("Block is not descendant of checkpoint in sentry votes")
 		}
-		// Guardian votes must be valid.
-		gcp, err := e.ledger.GetGuardianCandidatePool(block.GuardianVotes.Block)
+		// Sentry votes must be valid.
+		gcp, err := e.ledger.GetSentryCandidatePool(block.SentryVotes.Block)
 		if err != nil {
 			e.logger.WithFields(log.Fields{
 				"block.Hash":          block.Hash().Hex(),
 				"block.Height":        block.Height,
-				"block.GuardianVotes": block.GuardianVotes.String(),
+				"block.SentryVotes": block.SentryVotes.String(),
 				"error":               err.Error(),
-			}).Warn("Failed to load guardian pool")
-			return result.Error("Failed to load guardian pool")
+			}).Warn("Failed to load sentry pool")
+			return result.Error("Failed to load sentry pool")
 		}
-		if res := block.GuardianVotes.Validate(gcp); res.IsError() {
+		if res := block.SentryVotes.Validate(gcp); res.IsError() {
 			e.logger.WithFields(log.Fields{
 				"block.Hash":          block.Hash().Hex(),
 				"block.Height":        block.Height,
-				"block.GuardianVotes": block.GuardianVotes.String(),
+				"block.SentryVotes": block.SentryVotes.String(),
 				"error":               res.String(),
-			}).Warn("Failed to load guardian pool")
-			return result.Error("Guardian votes are not valid")
+			}).Warn("Failed to load sentry pool")
+			return result.Error("Sentry votes are not valid")
 		}
 	} else {
-		if block.GuardianVotes != nil {
+		if block.SentryVotes != nil {
 			e.logger.WithFields(log.Fields{
 				"block.Epoch":         block.Epoch,
 				"block.proposer":      block.Proposer.Hex(),
 				"block.Hash":          block.Hash().Hex(),
 				"block.Height":        block.Height,
-				"block.GuardianVotes": block.GuardianVotes.String(),
-			}).Warn("Guardian votes in non-checkpoint block")
-			return result.Error("Non-checkpoint block should not have guardian votes")
+				"block.SentryVotes": block.SentryVotes.String(),
+			}).Warn("Sentry votes in non-checkpoint block")
+			return result.Error("Non-checkpoint block should not have sentry votes")
 		}
 	}
 
@@ -952,18 +952,18 @@ func (e *ConsensusEngine) GetTip(includePendingBlockingLeaf bool) *core.Extended
 	return candidate
 }
 
-func (e *ConsensusEngine) handleGuardianVote(v *core.AggregatedVotes) {
-	e.guardian.HandleVote(v)
+func (e *ConsensusEngine) handleSentryVote(v *core.AggregatedVotes) {
+	e.sentry.HandleVote(v)
 }
 
-func (e *ConsensusEngine) broadcastGuardianVote(vote *core.AggregatedVotes) {
+func (e *ConsensusEngine) broadcastSentryVote(vote *core.AggregatedVotes) {
 	payload, err := rlp.EncodeToBytes(vote)
 	if err != nil {
-		e.logger.WithFields(log.Fields{"guardian vote": vote}).Error("Failed to encode vote")
+		e.logger.WithFields(log.Fields{"sentry vote": vote}).Error("Failed to encode vote")
 		return
 	}
 	voteMsg := dispatcher.DataResponse{
-		ChannelID: common.ChannelIDGuardian,
+		ChannelID: common.ChannelIDSentry,
 		Payload:   payload,
 	}
 	e.dispatcher.SendData([]string{}, voteMsg)
@@ -1034,10 +1034,10 @@ func (e *ConsensusEngine) finalizeBlock(block *core.ExtendedBlock) error {
 	// duplicate TX in fork.
 	e.chain.AddTxsToIndex(block, true)
 
-	// Guardians to vote for checkpoint blocks.
+	// Sentrys to vote for checkpoint blocks.
 	if common.IsCheckPointHeight(block.Height) {
-		e.guardian.StartNewBlock(block.Hash())
-		e.resetGuardianTimer()
+		e.sentry.StartNewBlock(block.Hash())
+		e.resetSentryTimer()
 	}
 
 	select {
@@ -1110,9 +1110,9 @@ func (e *ConsensusEngine) createProposal() (core.Proposal, error) {
 	hccValidators := e.validatorManager.GetValidatorSet(block.HCC.BlockHash)
 	block.HCC.Votes = e.chain.FindVotesByHash(block.HCC.BlockHash).UniqueVoter().FilterByValidators(hccValidators)
 
-	// Add guardian votes.
+	// Add sentry votes.
 	if block.Height >= common.HeightEnableDneroV1 && common.IsCheckPointHeight(block.Height) {
-		block.GuardianVotes = e.guardian.GetBestVote()
+		block.SentryVotes = e.sentry.GetBestVote()
 	}
 
 	// Add Txs.
@@ -1219,11 +1219,11 @@ func (e *ConsensusEngine) State() *State {
 	return e.state
 }
 
-func (e *ConsensusEngine) resetGuardianTimer() {
-	if e.guardianTimer != nil {
-		e.guardianTimer.Stop()
+func (e *ConsensusEngine) resetSentryTimer() {
+	if e.sentryTimer != nil {
+		e.sentryTimer.Stop()
 	}
-	e.guardianTimer = time.NewTicker(time.Duration(viper.GetInt(common.CfgGuardianRoundLength)) * time.Second)
+	e.sentryTimer = time.NewTicker(time.Duration(viper.GetInt(common.CfgSentryRoundLength)) * time.Second)
 }
 
 func isSyncing(lastestFinalizedBlock *core.ExtendedBlock, currentHeight uint64) bool {

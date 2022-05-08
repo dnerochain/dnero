@@ -49,14 +49,14 @@ func TestBlockEncoding(t *testing.T) {
 	b2raw2, _ = rlp.EncodeToBytes(tmp)
 	require.Equal(b2raw1, b2raw2)
 
-	// Decode with guardian votes.
-	b2.GuardianVotes = NewAggregateVotes(b2.Hash(), NewGuardianCandidatePool())
+	// Decode with sentry votes.
+	b2.SentryVotes = NewAggregateVotes(b2.Hash(), NewSentryCandidatePool())
 	b2raw1, _ = rlp.EncodeToBytes(b2)
 	err = rlp.DecodeBytes(b2raw1, tmp)
 	require.Nil(err)
 	b2raw2, _ = rlp.EncodeToBytes(tmp)
 	require.Equal(b2raw1, b2raw2)
-	require.Equal(tmp.GuardianVotes.Block, b2.GuardianVotes.Block)
+	require.Equal(tmp.SentryVotes.Block, b2.SentryVotes.Block)
 
 	// Test ExtendedBlock encoding/decoding
 	eb := &ExtendedBlock{}

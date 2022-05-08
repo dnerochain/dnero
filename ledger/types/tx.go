@@ -808,7 +808,7 @@ type DepositStakeTx struct {
 	Fee     Coins    `json:"fee"`     // Fee
 	Source  TxInput  `json:"source"`  // source staker account
 	Holder  TxOutput `json:"holder"`  // stake holder account
-	Purpose uint8    `json:"purpose"` // purpose e.g. stake for validator/guardian
+	Purpose uint8    `json:"purpose"` // purpose e.g. stake for validator/sentry
 }
 
 func (_ *DepositStakeTx) AssertIsTx() {}
@@ -842,7 +842,7 @@ type DepositStakeTxV1 struct {
 	Fee     Coins    `json:"fee"`     // Fee
 	Source  TxInput  `json:"source"`  // source staker account
 	Holder  TxOutput `json:"holder"`  // stake holder account
-	Purpose uint8    `json:"purpose"` // purpose e.g. stake for validator/guardian
+	Purpose uint8    `json:"purpose"` // purpose e.g. stake for validator/sentry
 
 	BlsPubkey *bls.PublicKey    `rlp:"nil"`
 	BlsPop    *bls.Signature    `rlp:"nil"`
@@ -863,7 +863,7 @@ func (tx *DepositStakeTxV1) SignBytes(chainID string) []byte {
 			Purpose: tx.Purpose,
 		}
 		txBytes, _ = TxToBytes(tmp)
-	} else if tx.Purpose == core.StakeForGuardian {
+	} else if tx.Purpose == core.StakeForSentry {
 		txBytes, _ = TxToBytes(tx)
 	}
 
@@ -894,7 +894,7 @@ type WithdrawStakeTx struct {
 	Fee     Coins    `json:"fee"`     // Fee
 	Source  TxInput  `json:"source"`  // source staker account
 	Holder  TxOutput `json:"holder"`  // stake holder account
-	Purpose uint8    `json:"purpose"` // purpose e.g. stake for validator/guardian
+	Purpose uint8    `json:"purpose"` // purpose e.g. stake for validator/sentry
 }
 
 func (_ *WithdrawStakeTx) AssertIsTx() {}

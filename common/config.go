@@ -28,8 +28,8 @@ const (
 	CfgConsensusMinProposalWait = "consensus.minProposalWait"
 	// CfgConsensusMessageQueueSize defines the capacity of consensus message queue.
 	CfgConsensusMessageQueueSize = "consensus.messageQueueSize"
-	// CfgConsensusPassThroughGuardianVote defines the how guardian vote is handled.
-	CfgConsensusPassThroughGuardianVote = "consensus.passThroughGuardianVote"
+	// CfgConsensusPassThroughSentryVote defines the how sentry vote is handled.
+	CfgConsensusPassThroughSentryVote = "consensus.passThroughSentryVote"
 
 	// CfgStorageStatePruningEnabled indicates whether state pruning is enabled
 	CfgStorageStatePruningEnabled = "storage.statePruningEnabled"
@@ -114,8 +114,8 @@ const (
 	// there are more than one node running).
 	CfgLogPrintSelfID = "log.printSelfID"
 
-	// CfgGuardianRoundLength defines the length of a guardian voting round.
-	CfgGuardianRoundLength = "guardian.roundLength"
+	// CfgSentryRoundLength defines the length of a sentry voting round.
+	CfgSentryRoundLength = "sentry.roundLength"
 
 	// Graphite Server to collet metrics
 	CfgMetricsServer = "metrics.server"
@@ -129,7 +129,7 @@ const (
 
 // Starting block heights of features.
 const (
-	FeatureGuardian uint64 = 0
+	FeatureSentry uint64 = 0
 )
 
 // InitialConfig is the default configuration produced by init command.
@@ -148,7 +148,7 @@ func init() {
 	viper.SetDefault(CfgConsensusMaxEpochLength, 20)
 	viper.SetDefault(CfgConsensusMinProposalWait, 6)
 	viper.SetDefault(CfgConsensusMessageQueueSize, 512)
-	viper.SetDefault(CfgConsensusPassThroughGuardianVote, false)
+	viper.SetDefault(CfgConsensusPassThroughSentryVote, false)
 
 	viper.SetDefault(CfgSyncMessageQueueSize, 512)
 	viper.SetDefault(CfgSyncDownloadByHash, false)
@@ -191,10 +191,10 @@ func init() {
 	viper.SetDefault(CfgLogLevels, "*:debug")
 	viper.SetDefault(CfgLogPrintSelfID, false)
 
-	viper.SetDefault(CfgGuardianRoundLength, 30)
+	viper.SetDefault(CfgSentryRoundLength, 30)
 
 	//TODO: Setup Dnero own Metrics Server
-	//viper.SetDefault(CfgMetricsServer, "guardian-metrics.dnerochain.org")
+	//viper.SetDefault(CfgMetricsServer, "sentry-metrics.dnerochain.org")
 
 	viper.SetDefault(CfgProfEnabled, false)
 	viper.SetDefault(CfgForceGCEnabled, true)

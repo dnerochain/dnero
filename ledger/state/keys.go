@@ -37,8 +37,8 @@ func ValidatorCandidatePoolKey() common.Bytes {
 	return common.Bytes("ls/vcp")
 }
 
-// GuardianCandidatePoolKey returns the state key for the guadian stake holder set
-func GuardianCandidatePoolKey() common.Bytes {
+// SentryCandidatePoolKey returns the state key for the guadian stake holder set
+func SentryCandidatePoolKey() common.Bytes {
 	return common.Bytes("ls/gcp")
 }
 

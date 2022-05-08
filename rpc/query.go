@@ -216,7 +216,7 @@ type GetBlockResultInner struct {
 	Timestamp     *common.JSONBig        `json:"timestamp"`
 	Proposer      common.Address         `json:"proposer"`
 	HCC           core.CommitCertificate `json:"hcc"`
-	GuardianVotes *core.AggregatedVotes  `json:"guardian_votes"`
+	SentryVotes *core.AggregatedVotes  `json:"sentry_votes"`
 
 	Children []common.Hash    `json:"children"`
 	Status   core.BlockStatus `json:"status"`
@@ -263,7 +263,7 @@ func (t *DneroRPCService) GetBlock(args *GetBlockArgs, result *GetBlockResult) (
 	result.Children = block.Children
 	result.Status = block.Status
 	result.HCC = block.HCC
-	result.GuardianVotes = block.GuardianVotes
+	result.SentryVotes = block.SentryVotes
 
 	result.Hash = block.Hash()
 
@@ -330,7 +330,7 @@ func (t *DneroRPCService) GetBlockByHeight(args *GetBlockByHeightArgs, result *G
 	result.Children = block.Children
 	result.Status = block.Status
 	result.HCC = block.HCC
-	result.GuardianVotes = block.GuardianVotes
+	result.SentryVotes = block.SentryVotes
 
 	result.Hash = block.Hash()
 
@@ -407,7 +407,7 @@ func (t *DneroRPCService) GetBlocksByRange(args *GetBlocksByRangeArgs, result *G
 		blkInner.Children = block.Children
 		blkInner.Status = block.Status
 		blkInner.HCC = block.HCC
-		blkInner.GuardianVotes = block.GuardianVotes
+		blkInner.SentryVotes = block.SentryVotes
 
 		blkInner.Hash = block.Hash()
 
@@ -572,7 +572,7 @@ type GetGcpResult struct {
 
 type BlockHashGcpPair struct {
 	BlockHash common.Hash
-	Gcp       *core.GuardianCandidatePool
+	Gcp       *core.SentryCandidatePool
 }
 
 func (t *DneroRPCService) GetGcpByHeight(args *GetGcpByHeightArgs, result *GetGcpResult) (err error) {
@@ -593,7 +593,7 @@ func (t *DneroRPCService) GetGcpByHeight(args *GetGcpByHeightArgs, result *GetGc
 		if blockStoreView == nil { // might have been pruned
 			return fmt.Errorf("the GCP for height %v does not exists, it might have been pruned", height)
 		}
-		gcp := blockStoreView.GetGuardianCandidatePool()
+		gcp := blockStoreView.GetSentryCandidatePool()
 		blockHashGcpPairs = append(blockHashGcpPairs, BlockHashGcpPair{
 			BlockHash: blockHash,
 			Gcp:       gcp,
@@ -605,18 +605,18 @@ func (t *DneroRPCService) GetGcpByHeight(args *GetGcpByHeightArgs, result *GetGc
 	return nil
 }
 
-// ------------------------------ GetGuardianKey -----------------------------------
+// ------------------------------ GetSentryKey -----------------------------------
 
-type GetGuardianInfoArgs struct{}
+type GetSentryInfoArgs struct{}
 
-type GetGuardianInfoResult struct {
+type GetSentryInfoResult struct {
 	BLSPubkey string
 	BLSPop    string
 	Address   string
 	Signature string
 }
 
-func (t *DneroRPCService) GetGuardianInfo(args *GetGuardianInfoArgs, result *GetGuardianInfoResult) (err error) {
+func (t *DneroRPCService) GetSentryInfo(args *GetSentryInfoArgs, result *GetSentryInfoResult) (err error) {
 	privKey := t.consensus.PrivateKey()
 	blsKey, err := bls.GenKey(strings.NewReader(common.Bytes2Hex(privKey.PublicKey().ToBytes())))
 	if err != nil {

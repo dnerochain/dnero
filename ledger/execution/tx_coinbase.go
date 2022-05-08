@@ -92,18 +92,18 @@ func (exec *CoinbaseTxExecutor) sanityCheck(chainID string, view *st.StoreView, 
 
 	// check the reward amount
 	var expectedRewards map[string]types.Coins
-	guardianVotes := exec.consensus.GetLedger().GetCurrentBlock().GuardianVotes
+	sentryVotes := exec.consensus.GetLedger().GetCurrentBlock().SentryVotes
 
-	if tx.BlockHeight < common.HeightEnableDneroV1 || guardianVotes == nil {
+	if tx.BlockHeight < common.HeightEnableDneroV1 || sentryVotes == nil {
 		expectedRewards = CalculateReward(exec.consensus.GetLedger(), view, validatorSet, nil, nil)
 	} else {
-		guradianVoteBlock, err := exec.chain.FindBlock(guardianVotes.Block)
+		guradianVoteBlock, err := exec.chain.FindBlock(sentryVotes.Block)
 		if err != nil {
 			logger.Panic(err)
 		}
 		storeView := st.NewStoreView(guradianVoteBlock.Height, guradianVoteBlock.StateHash, exec.db)
-		guardianCandidatePool := storeView.GetGuardianCandidatePool()
-		expectedRewards = CalculateReward(exec.consensus.GetLedger(), view, validatorSet, guardianVotes, guardianCandidatePool)
+		sentryCandidatePool := storeView.GetSentryCandidatePool()
+		expectedRewards = CalculateReward(exec.consensus.GetLedger(), view, validatorSet, sentryVotes, sentryCandidatePool)
 	}
 
 	if len(expectedRewards) != len(tx.Outputs) {
@@ -147,24 +147,24 @@ func (exec *CoinbaseTxExecutor) process(chainID string, view *st.StoreView, tran
 }
 
 // CalculateReward calculates the block reward for each account
-func CalculateReward(ledger core.Ledger, view *st.StoreView, validatorSet *core.ValidatorSet, guardianVotes *core.AggregatedVotes, guardianPool *core.GuardianCandidatePool) map[string]types.Coins {
+func CalculateReward(ledger core.Ledger, view *st.StoreView, validatorSet *core.ValidatorSet, sentryVotes *core.AggregatedVotes, sentryPool *core.SentryCandidatePool) map[string]types.Coins {
 	accountReward := map[string]types.Coins{}
 	blockHeight := view.Height() + 1 // view points to the parent block
 	if blockHeight < common.HeightEnableValidatorReward {
 		grantValidatorsWithZeroReward(validatorSet, &accountReward)
-	} else if blockHeight < common.HeightEnableDneroV1 || guardianVotes == nil || guardianPool == nil {
+	} else if blockHeight < common.HeightEnableDneroV1 || sentryVotes == nil || sentryPool == nil {
 		grantValidatorReward(ledger, view, validatorSet, &accountReward, blockHeight)
 	} else if blockHeight < common.HeightSampleStakingReward {
-		grantStakerReward(ledger, view, validatorSet, guardianVotes, guardianPool, &accountReward, blockHeight)
+		grantStakerReward(ledger, view, validatorSet, sentryVotes, sentryPool, &accountReward, blockHeight)
 	} else {
-		grantStakerRewardRandomized(ledger, view, validatorSet, guardianVotes, guardianPool, &accountReward, blockHeight)
+		grantStakerRewardRandomized(ledger, view, validatorSet, sentryVotes, sentryPool, &accountReward, blockHeight)
 	}
 
 	return accountReward
 }
 
 func grantValidatorsWithZeroReward(validatorSet *core.ValidatorSet, accountReward *map[string]types.Coins) {
-	// Initial Mainnet release should not reward the validators until the guardians ready to deploy
+	// Initial Mainnet release should not reward the validators until the sentrys ready to deploy
 	zeroReward := types.Coins{}.NoNil()
 	for _, v := range validatorSet.Validators() {
 		(*accountReward)[string(v.Address[:])] = zeroReward
@@ -229,19 +229,19 @@ func grantValidatorReward(ledger core.Ledger, view *st.StoreView, validatorSet *
 	}
 }
 
-func grantStakerReward(ledger core.Ledger, view *st.StoreView, validatorSet *core.ValidatorSet, guardianVotes *core.AggregatedVotes,
-	guardianPool *core.GuardianCandidatePool, accountReward *map[string]types.Coins, blockHeight uint64) {
+func grantStakerReward(ledger core.Ledger, view *st.StoreView, validatorSet *core.ValidatorSet, sentryVotes *core.AggregatedVotes,
+	sentryPool *core.SentryCandidatePool, accountReward *map[string]types.Coins, blockHeight uint64) {
 	if !common.IsCheckPointHeight(blockHeight) {
 		return
 	}
 
 	totalStake := validatorSet.TotalStake()
 
-	if guardianPool == nil || guardianVotes == nil {
+	if sentryPool == nil || sentryVotes == nil {
 		// Should never reach here
-		panic("guardianPool == nil && guardianVotes == nil")
+		panic("sentryPool == nil && sentryVotes == nil")
 	}
-	guardianPool = guardianPool.WithStake()
+	sentryPool = sentryPool.WithStake()
 
 	if totalStake.Cmp(big.NewInt(0)) == 0 {
 		// Should never happen
@@ -277,8 +277,8 @@ func grantStakerReward(ledger core.Ledger, view *st.StoreView, validatorSet *cor
 		}
 	}
 
-	for i, g := range guardianPool.SortedGuardians {
-		if guardianVotes.Multiplies[i] == 0 {
+	for i, g := range sentryPool.SortedSentrys {
+		if sentryVotes.Multiplies[i] == 0 {
 			continue
 		}
 		stakes := g.Stakes
@@ -318,19 +318,19 @@ func grantStakerReward(ledger core.Ledger, view *st.StoreView, validatorSet *cor
 	}
 }
 
-func grantStakerRewardRandomized(ledger core.Ledger, view *st.StoreView, validatorSet *core.ValidatorSet, guardianVotes *core.AggregatedVotes,
-	guardianPool *core.GuardianCandidatePool, accountReward *map[string]types.Coins, blockHeight uint64) {
+func grantStakerRewardRandomized(ledger core.Ledger, view *st.StoreView, validatorSet *core.ValidatorSet, sentryVotes *core.AggregatedVotes,
+	sentryPool *core.SentryCandidatePool, accountReward *map[string]types.Coins, blockHeight uint64) {
 	if !common.IsCheckPointHeight(blockHeight) {
 		return
 	}
 
 	totalStake := validatorSet.TotalStake()
 
-	if guardianPool == nil || guardianVotes == nil {
+	if sentryPool == nil || sentryVotes == nil {
 		// Should never reach here
-		panic("guardianPool == nil || guardianVotes == nil")
+		panic("sentryPool == nil || sentryVotes == nil")
 	}
-	guardianPool = guardianPool.WithStake()
+	sentryPool = sentryPool.WithStake()
 
 	if totalStake.Cmp(big.NewInt(0)) == 0 {
 		// Should never happen
@@ -366,8 +366,8 @@ func grantStakerRewardRandomized(ledger core.Ledger, view *st.StoreView, validat
 		}
 	}
 
-	for i, g := range guardianPool.SortedGuardians {
-		if guardianVotes.Multiplies[i] == 0 {
+	for i, g := range sentryPool.SortedSentrys {
+		if sentryVotes.Multiplies[i] == 0 {
 			continue
 		}
 		stakes := g.Stakes
@@ -397,7 +397,7 @@ func grantStakerRewardRandomized(ledger core.Ledger, view *st.StoreView, validat
 		seed := make([]byte, 2*binary.MaxVarintLen64+common.HashLength)
 		binary.PutUvarint(seed[:], view.Height())
 		binary.PutUvarint(seed[binary.MaxVarintLen64:], uint64(i))
-		copy(seed[2*binary.MaxVarintLen64:], guardianVotes.Block[:])
+		copy(seed[2*binary.MaxVarintLen64:], sentryVotes.Block[:])
 
 		var err error
 		samples[i], err = rand.Int(NewHashRand(seed), totalStake)

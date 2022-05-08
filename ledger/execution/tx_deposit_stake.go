@@ -31,7 +31,7 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 	// Feature block height check
 	blockHeight := view.Height() + 1 // the view points to the parent of the current block
 	if _, ok := transaction.(*types.DepositStakeTxV1); ok && blockHeight < common.HeightEnableDneroV1 {
-		return result.Error("Feature guardian is not active yet")
+		return result.Error("Feature sentry is not active yet")
 	}
 
 	tx := exec.castTx(transaction)
@@ -58,7 +58,7 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 			minTxFee).WithErrorCode(result.CodeInvalidFee)
 	}
 
-	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForGuardian) {
+	if !(tx.Purpose == core.StakeForValidator || tx.Purpose == core.StakeForSentry) {
 		return result.Error("Invalid stake purpose!").
 			WithErrorCode(result.CodeInvalidStakePurpose)
 	}
@@ -80,13 +80,13 @@ func (exec *DepositStakeExecutor) sanityCheck(chainID string, view *st.StoreView
 			WithErrorCode(result.CodeInsufficientStake)
 	}
 
-	if tx.Purpose == core.StakeForGuardian {
-		minGuardianStake := core.MinGuardianStakeDeposit
+	if tx.Purpose == core.StakeForSentry {
+		minSentryStake := core.MinSentryStakeDeposit
 		//if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 { //StakeDeposit Fork Removed
-			//minGuardianStake = core.MinGuardianStakeDeposit1000
+			//minSentryStake = core.MinSentryStakeDeposit1000
 		//}
-		if stake.DneroWei.Cmp(minGuardianStake) < 0 {
-			return result.Error("Insufficient amount of stake, at least %v DneroWei is required for each guardian deposit", minGuardianStake).
+		if stake.DneroWei.Cmp(minSentryStake) < 0 {
+			return result.Error("Insufficient amount of stake, at least %v DneroWei is required for each sentry deposit", minSentryStake).
 				WithErrorCode(result.CodeInsufficientStake)
 		}
 	}
@@ -132,10 +132,10 @@ func (exec *DepositStakeExecutor) process(chainID string, view *st.StoreView, tr
 			return common.Hash{}, result.Error("Failed to deposit stake, err: %v", err)
 		}
 		view.UpdateValidatorCandidatePool(vcp)
-	} else if tx.Purpose == core.StakeForGuardian {
+	} else if tx.Purpose == core.StakeForSentry {
 		sourceAccount.Balance = sourceAccount.Balance.Minus(stake)
 		stakeAmount := stake.DneroWei
-		gcp := view.GetGuardianCandidatePool()
+		gcp := view.GetSentryCandidatePool()
 
 		if !gcp.Contains(holderAddress) {
 			if tx.BlsPubkey.IsEmpty() {
@@ -161,7 +161,7 @@ func (exec *DepositStakeExecutor) process(chainID string, view *st.StoreView, tr
 		if err != nil {
 			return common.Hash{}, result.Error("Failed to deposit stake, err: %v", err)
 		}
-		view.UpdateGuardianCandidatePool(gcp)
+		view.UpdateSentryCandidatePool(gcp)
 	} else {
 		return common.Hash{}, result.Error("Invalid staking purpose").WithErrorCode(result.CodeInvalidStakePurpose)
 	}

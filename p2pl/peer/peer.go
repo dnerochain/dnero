@@ -29,7 +29,7 @@ var Channels = []cmn.ChannelIDEnum{
 	cmn.ChannelIDTransaction,
 	cmn.ChannelIDPeerDiscovery,
 	cmn.ChannelIDPing,
-	cmn.ChannelIDGuardian,
+	cmn.ChannelIDSentry,
 }
 
 //

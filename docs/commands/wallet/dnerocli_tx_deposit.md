@@ -1,10 +1,10 @@
 ## dnerocli tx deposit
 
-Deposit stake to a validator or guardian
+Deposit stake to a validator or sentry
 
 ### Synopsis
 
-Deposit stake to a validator or guardian
+Deposit stake to a validator or sentry
 
 ```
 dnerocli tx deposit [flags]

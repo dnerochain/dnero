@@ -140,8 +140,8 @@ func (ledger *Ledger) GetFinalizedValidatorCandidatePool(blockHash common.Hash, 
 	return nil, fmt.Errorf("Failed to find a directly finalized ancestor block for %v", blockHash)
 }
 
-// GetGuardianCandidatePool returns the guardian candidate pool of the given block.
-func (ledger *Ledger) GetGuardianCandidatePool(blockHash common.Hash) (*core.GuardianCandidatePool, error) {
+// GetSentryCandidatePool returns the sentry candidate pool of the given block.
+func (ledger *Ledger) GetSentryCandidatePool(blockHash common.Hash) (*core.SentryCandidatePool, error) {
 	db := ledger.state.DB()
 	store := kvstore.NewKVStore(db)
 
@@ -159,7 +159,7 @@ func (ledger *Ledger) GetGuardianCandidatePool(blockHash common.Hash) (*core.Gua
 		if common.IsCheckPointHeight(block.Height) {
 			stateRoot := block.BlockHeader.StateHash
 			storeView := st.NewStoreView(block.Height, stateRoot, db)
-			gcp := storeView.GetGuardianCandidatePool()
+			gcp := storeView.GetSentryCandidatePool()
 			return gcp, nil
 		}
 		blockHash = block.Parent
@@ -579,7 +579,7 @@ func (ledger *Ledger) shouldSkipCheckTx(tx types.Tx) bool {
 // is returned only after X blocks of its corresponding StakeWithdraw transaction
 func (ledger *Ledger) handleDelayedStateUpdates(view *st.StoreView) {
 	ledger.handleValidatorStakeReturn(view)
-	ledger.handleGuardianStakeReturn(view)
+	ledger.handleSentryStakeReturn(view)
 }
 
 func (ledger *Ledger) handleValidatorStakeReturn(view *st.StoreView) {
@@ -611,8 +611,8 @@ func (ledger *Ledger) handleValidatorStakeReturn(view *st.StoreView) {
 	view.UpdateValidatorCandidatePool(vcp)
 }
 
-func (ledger *Ledger) handleGuardianStakeReturn(view *st.StoreView) {
-	gcp := view.GetGuardianCandidatePool()
+func (ledger *Ledger) handleSentryStakeReturn(view *st.StoreView) {
+	gcp := view.GetSentryCandidatePool()
 	if gcp == nil || gcp.Len() == 0 {
 		return
 	}
@@ -637,7 +637,7 @@ func (ledger *Ledger) handleGuardianStakeReturn(view *st.StoreView) {
 		sourceAccount.Balance = sourceAccount.Balance.Plus(returnedCoins)
 		view.SetAccount(sourceAddress, sourceAccount)
 	}
-	view.UpdateGuardianCandidatePool(gcp)
+	view.UpdateSentryCandidatePool(gcp)
 }
 
 // addSpecialTransactions adds special transactions (e.g. coinbase transaction, slash transaction) to the block
@@ -668,17 +668,17 @@ func (ledger *Ledger) addCoinbaseTx(view *st.StoreView, proposer *core.Validator
 
 	var accountRewardMap map[string]types.Coins
 	ch := ledger.GetCurrentBlock().Height
-	guardianVotes := ledger.GetCurrentBlock().GuardianVotes
+	sentryVotes := ledger.GetCurrentBlock().SentryVotes
 
-	if guardianVotes != nil && ch >= common.HeightEnableDneroV1 && common.IsCheckPointHeight(ch) {
-		guradianVoteBlock, err := ledger.chain.FindBlock(guardianVotes.Block)
+	if sentryVotes != nil && ch >= common.HeightEnableDneroV1 && common.IsCheckPointHeight(ch) {
+		guradianVoteBlock, err := ledger.chain.FindBlock(sentryVotes.Block)
 		if err != nil {
 			logger.Panic(err)
 		}
 		storeView := st.NewStoreView(guradianVoteBlock.Height, guradianVoteBlock.StateHash, ledger.db)
-		guardianCandidatePool := storeView.GetGuardianCandidatePool()
+		sentryCandidatePool := storeView.GetSentryCandidatePool()
 
-		accountRewardMap = exec.CalculateReward(ledger, view, validatorSet, guardianVotes, guardianCandidatePool)
+		accountRewardMap = exec.CalculateReward(ledger, view, validatorSet, sentryVotes, sentryCandidatePool)
 	} else {
 		accountRewardMap = exec.CalculateReward(ledger, view, validatorSet, nil, nil)
 	}
