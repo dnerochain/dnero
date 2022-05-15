@@ -952,3 +952,37 @@ func addPrefixForSignBytes(signBytes common.Bytes) common.Bytes {
 	}
 	return signBytes
 }
+
+/****** Dnero ETH-RPC *********/
+
+// For replay attack protection
+// https://chainid.network/
+const CHAIN_ID_OFFSET int64 = 5466 //360
+
+func MapChainID(chainIDStr string, blockHeight uint64) *big.Int {
+	chainIDWithoutOffset := mapChainIDWithoutOffset(chainIDStr)
+	if blockHeight < common.HeightRPCCompatibility {
+		return chainIDWithoutOffset
+	}
+
+	// For replay attack protection, should NOT use the same chainID as Ethereum
+	chainID := big.NewInt(1).Add(big.NewInt(CHAIN_ID_OFFSET), chainIDWithoutOffset)
+	return chainID
+}
+
+func mapChainIDWithoutOffset(chainIDStr string) *big.Int {
+	if chainIDStr == "mainnet" { // correspond to the Ethereum mainnet
+		return big.NewInt(1)
+	} else if chainIDStr == "testnet" { 
+		return big.NewInt(2)
+	} else if chainIDStr == "testnet_sapphire" { // correspond to Ropsten
+		return big.NewInt(3)
+	} else if chainIDStr == "testnet_amber" { // correspond to Rinkeby
+		return big.NewInt(4)
+	} else if chainIDStr == "privatenet" {
+		return big.NewInt(5)
+	}
+
+	chainIDBigInt := new(big.Int).Abs(crypto.Keccak256Hash(common.Bytes(chainIDStr)).Big()) // all other chainIDs
+	return chainIDBigInt
+}

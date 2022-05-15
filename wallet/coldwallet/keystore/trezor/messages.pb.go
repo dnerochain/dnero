@@ -4360,7 +4360,8 @@ func (m *DebugLinkFlashErase) GetSector() uint32 {
 	return 0
 }
 
-func init() {
+//TODO: Need a fix first to enable Trezor for Dnero (Comment out for now For Dnero-Eth-Rpc)
+/*func init() {
 	proto.RegisterEnum("trezor.MessageType", MessageType_name, MessageType_value)
 	proto.RegisterType((*Initialize)(nil), "trezor.Initialize")
 	proto.RegisterType((*GetFeatures)(nil), "trezor.GetFeatures")
@@ -4435,7 +4436,7 @@ func init() {
 	proto.RegisterType((*DebugLinkMemory)(nil), "trezor.DebugLinkMemory")
 	proto.RegisterType((*DebugLinkMemoryWrite)(nil), "trezor.DebugLinkMemoryWrite")
 	proto.RegisterType((*DebugLinkFlashErase)(nil), "trezor.DebugLinkFlashErase")
-}
+}*/
 
 func init() { proto.RegisterFile("messages.proto", fileDescriptor_4dc296cbfe5ffcd5) }
 
