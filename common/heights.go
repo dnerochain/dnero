@@ -20,6 +20,9 @@ const HeightSampleStakingReward uint64 = 70001 // block #70001
 // HeightNewFeeAdjustment specifies the block height to enable transaction fee burning adjustment
 const HeightNewFeeAdjustment uint64 = 100001 // block #100001
 
+// HeightRPCCompatibility specifies the block height to enable Ethereum compatible RPC support
+const HeightRPCCompatibility uint64 = 120001 // block #120001
+
 // CheckpointInterval defines the interval between checkpoints.
 const CheckpointInterval = int64(100)
 

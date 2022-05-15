@@ -9,6 +9,7 @@
 >Smart Contract Activation Block #50001
 >Sample Staking Reward Activation Block #70001
 >New Tx Fee Adjustment Activation Block #100001
+>ETH-RPC Compatibility Activation Block #120001
 ```
 
 ## Min DNERO To Become A Validator
