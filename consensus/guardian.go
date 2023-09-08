@@ -28,9 +28,9 @@ type SentryEngine struct {
 	round       uint32
 	currVote    *core.AggregatedVotes
 	nextVote    *core.AggregatedVotes
-	gcp         *core.SentryCandidatePool
-	gcpHash     common.Hash
-	signerIndex int // Signer's index in current gcp
+	scp         *core.SentryCandidatePool
+	scpHash     common.Hash
+	signerIndex int // Signer's index in current scp
 
 	incoming chan *core.AggregatedVotes
 	mu       *sync.Mutex
@@ -60,23 +60,23 @@ func (g *SentryEngine) StartNewBlock(block common.Hash) {
 	g.currVote = nil
 	g.round = 1
 
-	gcp, err := g.engine.GetLedger().GetSentryCandidatePool(block)
+	scp, err := g.engine.GetLedger().GetSentryCandidatePool(block)
 	if err != nil {
 		// Should not happen
 		g.logger.Panic(err)
 	}
-	g.gcp = gcp
-	g.gcpHash = gcp.Hash()
-	g.signerIndex = gcp.WithStake().Index(g.privKey.PublicKey())
+	g.scp = scp
+	g.scpHash = scp.Hash()
+	g.signerIndex = scp.WithStake().Index(g.privKey.PublicKey())
 
 	g.logger.WithFields(log.Fields{
 		"block":       block.Hex(),
-		"gcp":         g.gcpHash.Hex(),
+		"scp":         g.scpHash.Hex(),
 		"signerIndex": g.signerIndex,
 	}).Debug("Starting new block")
 
 	if g.isSentry() {
-		g.nextVote = core.NewAggregateVotes(block, gcp)
+		g.nextVote = core.NewAggregateVotes(block, scp)
 		g.nextVote.Sign(g.privKey, g.signerIndex)
 		g.currVote = g.nextVote.Copy()
 	} else {
@@ -152,12 +152,12 @@ func (g *SentryEngine) processVote(vote *core.AggregatedVotes) {
 				"g.round":               g.round,
 				"vote.block":            vote.Block.Hex(),
 				"vote.Mutiplies":        vote.Multiplies,
-				"vote.GCP":              vote.Gcp.Hex(),
+				"vote.SCP":              vote.Scp.Hex(),
 				"g.nextVote.Multiplies": g.nextVote.Multiplies,
-				"g.nextVote.GCP":        g.nextVote.Gcp.Hex(),
+				"g.nextVote.SCP":        g.nextVote.Scp.Hex(),
 				"g.nextVote.Block":      g.nextVote.Block.Hex(),
 				"error":                 err.Error(),
-			}).Info("Failed to pick sentry vote")
+			}).Debug("Failed to pick sentry vote")
 		}
 		if candidate == g.nextVote {
 			// Incoming vote is not better than the current nextVote.
@@ -175,12 +175,12 @@ func (g *SentryEngine) processVote(vote *core.AggregatedVotes) {
 				"g.round":               g.round,
 				"vote.block":            vote.Block.Hex(),
 				"vote.Mutiplies":        vote.Multiplies,
-				"vote.GCP":              vote.Gcp.Hex(),
+				"vote.SCP":              vote.Scp.Hex(),
 				"g.nextVote.Multiplies": g.nextVote.Multiplies,
-				"g.nextVote.GCP":        g.nextVote.Gcp.Hex(),
+				"g.nextVote.SCP":        g.nextVote.Scp.Hex(),
 				"g.nextVote.Block":      g.nextVote.Block.Hex(),
 				"error":                 err.Error(),
-			}).Info("Failed to merge sentry vote")
+			}).Debug("Failed to merge sentry vote")
 		}
 		if candidate == nil {
 			// Incoming vote is subset of the current nextVote.
@@ -199,7 +199,7 @@ func (g *SentryEngine) processVote(vote *core.AggregatedVotes) {
 			"vote.block":            vote.Block.Hex(),
 			"vote.Mutiplies":        vote.Multiplies,
 			"local.vote.Multiplies": g.nextVote.Multiplies,
-		}).Info("Skipping vote: candidate vote overflows")
+		}).Debug("Skipping vote: candidate vote overflows")
 		return
 	}
 
@@ -209,7 +209,7 @@ func (g *SentryEngine) processVote(vote *core.AggregatedVotes) {
 		"local.block":           g.block.Hex(),
 		"local.round":           g.round,
 		"local.vote.Multiplies": g.nextVote.Multiplies,
-	}).Info("New sentry vote")
+	}).Debug("New sentry vote")
 }
 
 func (g *SentryEngine) HandleVote(vote *core.AggregatedVotes) {
@@ -240,15 +240,15 @@ func (g *SentryEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 		}).Debug("Ignoring sentry vote: block hash does not match with local candidate")
 		return
 	}
-	if vote.Gcp != g.gcpHash {
+	if vote.Scp != g.scpHash {
 		g.logger.WithFields(log.Fields{
 			"local.block":    g.block.Hex(),
 			"local.round":    g.round,
 			"vote.block":     vote.Block.Hex(),
 			"vote.Mutiplies": vote.Multiplies,
-			"vote.gcp":       vote.Gcp.Hex(),
-			"local.gcp":      g.gcpHash.Hex(),
-		}).Debug("Ignoring sentry vote: gcp hash does not match with local value")
+			"vote.scp":       vote.Scp.Hex(),
+			"local.scp":      g.scpHash.Hex(),
+		}).Debug("Ignoring sentry vote: scp hash does not match with local value")
 		return
 	}
 	if !g.checkMultipliesForRound(vote, g.round) {
@@ -257,19 +257,19 @@ func (g *SentryEngine) validateVote(vote *core.AggregatedVotes) (res bool) {
 			"local.round":    g.round,
 			"vote.block":     vote.Block.Hex(),
 			"vote.Mutiplies": vote.Multiplies,
-			"vote.gcp":       vote.Gcp.Hex(),
-			"local.gcp":      g.gcpHash.Hex(),
+			"vote.scp":       vote.Scp.Hex(),
+			"local.scp":      g.scpHash.Hex(),
 		}).Debug("Ignoring sentry vote: mutiplies exceed limit for round")
 		return
 	}
-	if result := vote.Validate(g.gcp); result.IsError() {
+	if result := vote.Validate(g.scp); result.IsError() {
 		g.logger.WithFields(log.Fields{
 			"local.block":    g.block.Hex(),
 			"local.round":    g.round,
 			"vote.block":     vote.Block.Hex(),
 			"vote.Mutiplies": vote.Multiplies,
-			"vote.gcp":       vote.Gcp.Hex(),
-			"local.gcp":      g.gcpHash.Hex(),
+			"vote.scp":       vote.Scp.Hex(),
+			"local.scp":      g.scpHash.Hex(),
 			"error":          result.Message,
 		}).Debug("Ignoring sentry vote: invalid vote")
 		return

@@ -9,7 +9,7 @@ import (
 	"github.com/dnerochain/dnero/core"
 )
 
-const MaxValidatorCount int = 51
+const MaxValidatorCount int = 51 //31
 
 //
 // -------------------------------- FixedValidatorManager ----------------------------------
