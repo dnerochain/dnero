@@ -13,21 +13,21 @@ import (
 	rpcc "github.com/ybbus/jsonrpc"
 )
 
-// gcpCmd represents the gcp command.
+// scpCmd represents the scp command.
 // Example:
-//		dnerocli query gcp --height=10
-var gcpCmd = &cobra.Command{
-	Use:     "gcp",
+//		dnerocli query scp --height=10
+var scpCmd = &cobra.Command{
+	Use:     "scp",
 	Short:   "Get sentry candidate pool",
-	Example: `dnerocli query gcp --height=10`,
-	Run:     doGcpCmd,
+	Example: `dnerocli query scp --height=10`,
+	Run:     doScpCmd,
 }
 
-func doGcpCmd(cmd *cobra.Command, args []string) {
+func doScpCmd(cmd *cobra.Command, args []string) {
 	client := rpcc.NewRPCClient(viper.GetString(utils.CfgRemoteRPCEndpoint))
 
 	height := heightFlag
-	res, err := client.Call("dnero.GetGcpByHeight", rpc.GetGcpByHeightArgs{Height: common.JSONUint64(height)})
+	res, err := client.Call("dnero.GetScpByHeight", rpc.GetScpByHeightArgs{Height: common.JSONUint64(height)})
 	if err != nil {
 		utils.Error("Failed to get sentry candidate pool: %v\n", err)
 	}
@@ -42,6 +42,6 @@ func doGcpCmd(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	gcpCmd.Flags().Uint64Var(&heightFlag, "height", uint64(0), "height of the block")
-	gcpCmd.MarkFlagRequired("height")
+	scpCmd.Flags().Uint64Var(&heightFlag, "height", uint64(0), "height of the block")
+	scpCmd.MarkFlagRequired("height")
 }

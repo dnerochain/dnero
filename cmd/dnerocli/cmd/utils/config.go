@@ -8,7 +8,6 @@ const (
 )
 
 func init() {
-	//viper.SetDefault(CfgRemoteRPCEndpoint, "http://localhost:16888/rpc") //DEL
 	viper.SetDefault(CfgRemoteRPCEndpoint, "http://localhost:15511/rpc")
 	viper.SetDefault(CfgDebug, false)
 }

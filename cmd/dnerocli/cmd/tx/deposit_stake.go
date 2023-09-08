@@ -32,7 +32,7 @@ var depositStakeCmd = &cobra.Command{
 }
 
 func doDepositStakeCmd(cmd *cobra.Command, args []string) {
-	wallet, sourceAddress, err := walletUnlockWithPath(cmd, sourceFlag, pathFlag)
+	wallet, sourceAddress, err := walletUnlockWithPath(cmd, sourceFlag, pathFlag, passwordFlag)
 	if err != nil {
 		return
 	}
@@ -50,11 +50,22 @@ func doDepositStakeCmd(cmd *cobra.Command, args []string) {
 		utils.Error("Invalid input: stake must be positive\n")
 	}
 
+	var dneroStake *big.Int
+	var dtokenStake *big.Int
+
+	if purposeFlag == core.StakeForValidator || purposeFlag == core.StakeForSentry {
+		dneroStake = stake
+		dtokenStake = new(big.Int).SetUint64(0)
+	} else { // purposeFlag == core.StakeForEliteEdgeNode
+		dneroStake = new(big.Int).SetUint64(0)
+		dtokenStake = stake
+	}
+
 	source := types.TxInput{
 		Address: sourceAddress,
 		Coins: types.Coins{
-			DneroWei: stake,
-			DTokenWei: new(big.Int).SetUint64(0),
+			DneroWei: dneroStake,
+			DTokenWei: dtokenStake,
 		},
 		Sequence: uint64(seqFlag),
 	}
@@ -75,12 +86,12 @@ func doDepositStakeCmd(cmd *cobra.Command, args []string) {
 			utils.Error("holder must be a valid address")
 		}
 		holderAddress = common.HexToAddress(holderFlag)
-	} else {
+	} else if purposeFlag == core.StakeForSentry {
 		if strings.HasPrefix(holderFlag, "0x") {
 			holderFlag = holderFlag[2:]
 		}
 		if len(holderFlag) != 458 {
-			utils.Error("Holder must be a valid sentry address")
+			utils.Error("Holder must be a valid sentry summary")
 		}
 		sentryKeyBytes, err := hex.DecodeString(holderFlag)
 		if err != nil {
@@ -98,6 +109,41 @@ func doDepositStakeCmd(cmd *cobra.Command, args []string) {
 		holderSig, err := crypto.SignatureFromBytes(sentryKeyBytes[164:])
 		if err != nil {
 			utils.Error("Failed to decode signature: %v\n", err)
+		}
+
+		depositStakeTx.BlsPubkey = blsPubkey
+		depositStakeTx.BlsPop = blsPop
+		depositStakeTx.HolderSig = holderSig
+	} else { // purposeFlag == core.StakeForEliteEdgeNode
+		if strings.HasPrefix(holderFlag, "0x") {
+			holderFlag = holderFlag[2:]
+		}
+		if len(holderFlag) != 522 {
+			utils.Error("Holder must be a valid elite edge node summary")
+		}
+		eenSummaryBytes, err := hex.DecodeString(holderFlag)
+		if err != nil {
+			utils.Error("Failed to decode elite edge node summary: %v\n", err)
+		}
+		holderAddress = common.BytesToAddress(eenSummaryBytes[:20])
+		blsPubkey, err := bls.PublicKeyFromBytes(eenSummaryBytes[20:68])
+		if err != nil {
+			utils.Error("Failed to decode bls Pubkey: %v\n", err)
+		}
+		blsPop, err := bls.SignatureFromBytes(eenSummaryBytes[68:164])
+		if err != nil {
+			utils.Error("Failed to decode bls POP: %v\n", err)
+		}
+		holderSig, err := crypto.SignatureFromBytes(eenSummaryBytes[164:229])
+		if err != nil {
+			utils.Error("Failed to decode signature: %v\n", err)
+		}
+
+		expectedSummaryHash := crypto.Keccak256Hash([]byte("0x" + holderFlag[:458])).Hex()
+		summaryHash := hex.EncodeToString(eenSummaryBytes[229:])
+		if expectedSummaryHash[2:] != summaryHash {
+			utils.Error("Failed to verify elite edge node summary: unmatched summary hash - %v vs %v\n",
+				expectedSummaryHash, summaryHash)
 		}
 
 		depositStakeTx.BlsPubkey = blsPubkey
@@ -123,7 +169,12 @@ func doDepositStakeCmd(cmd *cobra.Command, args []string) {
 
 	client := rpcc.NewRPCClient(viper.GetString(utils.CfgRemoteRPCEndpoint))
 
-	res, err := client.Call("dnero.BroadcastRawTransaction", rpc.BroadcastRawTransactionArgs{TxBytes: signedTx})
+	var res *rpcc.RPCResponse
+	if asyncFlag {
+		res, err = client.Call("dnero.BroadcastRawTransactionAsync", rpc.BroadcastRawTransactionArgs{TxBytes: signedTx})
+	} else {
+		res, err = client.Call("dnero.BroadcastRawTransaction", rpc.BroadcastRawTransactionArgs{TxBytes: signedTx})
+	}
 	if err != nil {
 		utils.Error("Failed to broadcast transaction: %v\n", err)
 	}
@@ -138,11 +189,13 @@ func init() {
 	depositStakeCmd.Flags().StringVar(&sourceFlag, "source", "", "Source of the stake")
 	depositStakeCmd.Flags().StringVar(&holderFlag, "holder", "", "Holder of the stake")
 	depositStakeCmd.Flags().StringVar(&pathFlag, "path", "", "Wallet derivation path")
-	depositStakeCmd.Flags().StringVar(&feeFlag, "fee", fmt.Sprintf("%dwei", types.MinimumTransactionFeeDTokenWeiJune2021), "Fee")
+	depositStakeCmd.Flags().StringVar(&feeFlag, "fee", fmt.Sprintf("%dwei", types.MinimumTransactionFeeDTokenWeiNewFee), "Fee")
 	depositStakeCmd.Flags().Uint64Var(&seqFlag, "seq", 0, "Sequence number of the transaction")
 	depositStakeCmd.Flags().StringVar(&stakeInDneroFlag, "stake", "5000000", "Dnero amount to stake")
 	depositStakeCmd.Flags().Uint8Var(&purposeFlag, "purpose", 0, "Purpose of staking")
 	depositStakeCmd.Flags().StringVar(&walletFlag, "wallet", "soft", "Wallet type (soft|nano)")
+	depositStakeCmd.Flags().BoolVar(&asyncFlag, "async", false, "block until tx has been included in the blockchain")
+	depositStakeCmd.Flags().StringVar(&passwordFlag, "password", "", "password to unlock the wallet")
 
 	depositStakeCmd.MarkFlagRequired("chain")
 	depositStakeCmd.MarkFlagRequired("source")

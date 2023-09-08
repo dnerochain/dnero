@@ -25,7 +25,7 @@ var reserveFundCmd = &cobra.Command{
 }
 
 func doReserveFundCmd(cmd *cobra.Command, args []string) {
-	wallet, fromAddress, err := walletUnlock(cmd, fromFlag)
+	wallet, fromAddress, err := walletUnlock(cmd, fromFlag, passwordFlag)
 	if err != nil {
 		return
 	}
@@ -88,7 +88,12 @@ func doReserveFundCmd(cmd *cobra.Command, args []string) {
 
 	client := rpcc.NewRPCClient(viper.GetString(utils.CfgRemoteRPCEndpoint))
 
-	res, err := client.Call("dnero.BroadcastRawTransaction", rpc.BroadcastRawTransactionArgs{TxBytes: signedTx})
+	var res *rpcc.RPCResponse
+	if asyncFlag {
+		res, err = client.Call("dnero.BroadcastRawTransactionAsync", rpc.BroadcastRawTransactionArgs{TxBytes: signedTx})
+	} else {
+		res, err = client.Call("dnero.BroadcastRawTransaction", rpc.BroadcastRawTransactionArgs{TxBytes: signedTx})
+	}
 	if err != nil {
 		utils.Error("Failed to broadcast transaction: %v\n", err)
 	}
@@ -104,10 +109,12 @@ func init() {
 	reserveFundCmd.Flags().Uint64Var(&seqFlag, "seq", 0, "Sequence number of the transaction")
 	reserveFundCmd.Flags().StringVar(&reserveFundInDTokenFlag, "fund", "0", "DToken amount to reserve")
 	reserveFundCmd.Flags().StringVar(&reserveCollateralInDTokenFlag, "collateral", "0", "DToken amount as collateral")
-	reserveFundCmd.Flags().StringVar(&feeFlag, "fee", fmt.Sprintf("%dwei", types.MinimumTransactionFeeDTokenWeiJune2021), "Fee")
+	reserveFundCmd.Flags().StringVar(&feeFlag, "fee", fmt.Sprintf("%dwei", types.MinimumTransactionFeeDTokenWeiNewFee), "Fee")
 	reserveFundCmd.Flags().Uint64Var(&durationFlag, "duration", 1000, "Reserve duration")
 	reserveFundCmd.Flags().StringSliceVar(&resourceIDsFlag, "resource_ids", []string{}, "Reserouce IDs")
 	reserveFundCmd.Flags().StringVar(&walletFlag, "wallet", "soft", "Wallet type (soft|nano)")
+	reserveFundCmd.Flags().BoolVar(&asyncFlag, "async", false, "block until tx has been included in the blockchain")
+	reserveFundCmd.Flags().StringVar(&passwordFlag, "password", "", "password to unlock the wallet")
 
 	reserveFundCmd.MarkFlagRequired("chain")
 	reserveFundCmd.MarkFlagRequired("from")
