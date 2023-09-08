@@ -3,13 +3,17 @@ package rpc
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/dnerochain/dnero/cmd/dnerocli/cmd/utils"
 	"github.com/dnerochain/dnero/common"
 	"github.com/dnerochain/dnero/common/hexutil"
 	"github.com/dnerochain/dnero/core"
 	"github.com/dnerochain/dnero/crypto"
+	"github.com/dnerochain/dnero/ledger/types"
 	"github.com/dnerochain/dnero/mempool"
 )
 
@@ -207,6 +211,76 @@ func (t *DneroRPCService) BroadcastRawTransactionAsync(
 	logger.Warnf("Failed to broadcast raw transaction (async): %v, hash: %v, err: %v", hex.EncodeToString(txBytes), hash.Hex(), err)
 
 	return err
+}
+
+// ------------------------------- BroadcastRawEthTransaction -----------------------------------
+
+func (t *DneroRPCService) BroadcastRawEthTransaction(
+	args *BroadcastRawTransactionArgs, result *BroadcastRawTransactionResult) (err error) {
+
+	ethTxStr := args.TxBytes
+	txStr, err := translateEthTx(ethTxStr)
+	if err != nil {
+		return err
+	}
+
+	err = t.BroadcastRawTransaction(&BroadcastRawTransactionArgs{
+		TxBytes: txStr,
+	}, result)
+
+	return err
+}
+
+// ------------------------------- BroadcastRawEthTransactionAsyc -----------------------------------
+
+func (t *DneroRPCService) BroadcastRawEthTransactionAsync(
+	args *BroadcastRawTransactionAsyncArgs, result *BroadcastRawTransactionAsyncResult) (err error) {
+
+	ethTxStr := args.TxBytes
+
+	logger.Debugf("Received ETH transaction: %v", ethTxStr)
+
+	txStr, err := translateEthTx(ethTxStr)
+	if err != nil {
+		return err
+	}
+
+	err = t.BroadcastRawTransactionAsync(&BroadcastRawTransactionAsyncArgs{
+		TxBytes: txStr,
+	}, result)
+	if err != nil {
+		return err
+	}
+
+	ethTxStr = strings.TrimPrefix(ethTxStr, "0x")
+	ethTxBytes, err := hex.DecodeString(ethTxStr)
+	if err != nil {
+		return fmt.Errorf("cannot decode hex string: %v", txStr)
+	}
+	ethTxHash := common.BytesToHash(crypto.Keccak256(ethTxBytes)).Hex()
+	result.TxHash = ethTxHash
+
+	logger.Debugf("ethTxHash: %v", ethTxHash)
+
+	return err
+}
+
+func translateEthTx(ethTxStr string) (string, error) {
+	dneroSmartContractTx, err := types.TranslateEthTx(ethTxStr)
+	if err != nil {
+		return "", err
+	}
+
+	logger.Debugf("Recovered from address: %v, signature: %v",
+		dneroSmartContractTx.From.Address.Hex(), dneroSmartContractTx.From.Signature.ToBytes().String())
+
+	raw, err := types.TxToBytes(dneroSmartContractTx)
+	if err != nil {
+		utils.Error("Failed to encode transaction: %v\n", err)
+	}
+	txStr := hex.EncodeToString(raw)
+
+	return txStr, nil
 }
 
 // -------------------------- Utilities -------------------------- //
