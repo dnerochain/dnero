@@ -27,7 +27,7 @@ func NewSendTxExecutor(state *st.LedgerState) *SendTxExecutor {
 	}
 }
 
-func (exec *SendTxExecutor) sanityCheck(chainID string, view *st.StoreView, transaction types.Tx) result.Result {
+func (exec *SendTxExecutor) sanityCheck(chainID string, view *st.StoreView, viewSel core.ViewSelector, transaction types.Tx) result.Result {
 	tx := transaction.(*types.SendTx)
 
 	// Validate inputs and outputs, basic
@@ -74,7 +74,7 @@ func (exec *SendTxExecutor) sanityCheck(chainID string, view *st.StoreView, tran
 
 	// Validate inputs and outputs, advanced
 	signBytes := tx.SignBytes(chainID)
-	inTotal, res := validateInputsAdvanced(accounts, signBytes, tx.Inputs)
+	inTotal, res := validateInputsAdvanced(accounts, signBytes, tx.Inputs, blockHeight)
 	if res.IsError() {
 		return res
 	}
@@ -94,7 +94,7 @@ func (exec *SendTxExecutor) sanityCheck(chainID string, view *st.StoreView, tran
 	return result.OK
 }
 
-func (exec *SendTxExecutor) process(chainID string, view *st.StoreView, transaction types.Tx) (common.Hash, result.Result) {
+func (exec *SendTxExecutor) process(chainID string, view *st.StoreView, viewSel core.ViewSelector, transaction types.Tx) (common.Hash, result.Result) {
 	tx := transaction.(*types.SendTx)
 
 	accounts, res := getInputs(view, tx.Inputs)

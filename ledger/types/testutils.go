@@ -86,7 +86,7 @@ func Accs2TxInputs(seq int, accs ...PrivAccount) []TxInput {
 	for _, acc := range accs {
 		tx := NewTxInput(
 			acc.Account.Address,
-			NewCoins(4, int64(MinimumTransactionFeeDTokenWeiJune2021)),
+			NewCoins(4, int64(MinimumTransactionFeeDTokenWeiNewFee)),
 			seq)
 		txs = append(txs, tx)
 	}
@@ -108,7 +108,7 @@ func Accs2TxOutputs(accs ...PrivAccount) []TxOutput {
 
 func MakeSendTx(seq int, accOut PrivAccount, accsIn ...PrivAccount) *SendTx {
 	tx := &SendTx{
-		Fee:     NewCoins(0, int64(MinimumTransactionFeeDTokenWeiJune2021)),
+		Fee:     NewCoins(0, int64(MinimumTransactionFeeDTokenWeiNewFee)),
 		Inputs:  Accs2TxInputs(seq, accsIn...),
 		Outputs: Accs2TxOutputs(accOut),
 	}

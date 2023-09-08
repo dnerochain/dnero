@@ -33,8 +33,8 @@ import (
 // requires a deterministic gas count based on the input size of the Run method of the
 // contract.
 type PrecompiledContract interface {
-	RequiredGas(input []byte, blockHeight uint64) uint64 // RequiredPrice calculates the contract gas use
-	Run(evm *EVM, input []byte) ([]byte, error)          // Run runs the precompiled contract
+	RequiredGas(input []byte, blockHeight uint64) uint64                                       // RequiredPrice calculates the contract gas use
+	Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) // Run runs the precompiled contract
 }
 
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
@@ -62,12 +62,47 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{202}): &dneroStake{},
 }
 
+var PrecompiledContractsDneroSupport = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{2}): &sha256hash{},
+	common.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{4}): &dataCopy{},
+	common.BytesToAddress([]byte{5}): &bigModExp{},
+	common.BytesToAddress([]byte{6}): &bn256Add{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
+	common.BytesToAddress([]byte{8}): &bn256Pairing{},
+
+	common.BytesToAddress([]byte{201}): &dneroBalance{},
+	common.BytesToAddress([]byte{202}): &dneroStake{},
+	common.BytesToAddress([]byte{203}): &transferDnero{},
+}
+
+var PrecompiledContractsWrappedDneroSupport = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{2}): &sha256hash{},
+	common.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{4}): &dataCopy{},
+	common.BytesToAddress([]byte{5}): &bigModExp{},
+	common.BytesToAddress([]byte{6}): &bn256Add{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
+	common.BytesToAddress([]byte{8}): &bn256Pairing{},
+
+	common.BytesToAddress([]byte{201}): &dneroBalance{},
+	common.BytesToAddress([]byte{202}): &dneroStake{},
+	common.BytesToAddress([]byte{203}): &transferDnero{},
+	common.BytesToAddress([]byte{204}): &stakeToSentry{},
+	common.BytesToAddress([]byte{205}): &unstakeFromSentry{},
+	common.BytesToAddress([]byte{206}): &stakeToEEN{},
+	common.BytesToAddress([]byte{207}): &unstakeFromEEN{},
+}
+
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
 func RunPrecompiledContract(evm *EVM, p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	blockHeight := evm.StateDB.GetBlockHeight()
 	gas := p.RequiredGas(input, blockHeight)
 	if contract.UseGas(gas) {
-		return p.Run(evm, input)
+		callerAddr := contract.CallerAddress
+		return p.Run(evm, input, callerAddr, contract)
 	}
 	return nil, ErrOutOfGas
 }
@@ -79,7 +114,7 @@ func (c *ecrecover) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return params.EcrecoverGas
 }
 
-func (c *ecrecover) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *ecrecover) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	const ecRecoverInputLength = 128
 
 	input = common.RightPadBytes(input, ecRecoverInputLength)
@@ -115,7 +150,7 @@ type sha256hash struct{}
 func (c *sha256hash) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
 }
-func (c *sha256hash) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *sha256hash) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	h := sha256.Sum256(input)
 	return h[:], nil
 }
@@ -130,7 +165,7 @@ type ripemd160hash struct{}
 func (c *ripemd160hash) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return uint64(len(input)+31)/32*params.Ripemd160PerWordGas + params.Ripemd160BaseGas
 }
-func (c *ripemd160hash) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *ripemd160hash) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	ripemd := ripemd160.New()
 	ripemd.Write(input)
 	return common.LeftPadBytes(ripemd.Sum(nil), 32), nil
@@ -146,7 +181,7 @@ type dataCopy struct{}
 func (c *dataCopy) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return uint64(len(input)+31)/32*params.IdentityPerWordGas + params.IdentityBaseGas
 }
-func (c *dataCopy) Run(evm *EVM, in []byte) ([]byte, error) {
+func (c *dataCopy) Run(evm *EVM, in []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	return in, nil
 }
 
@@ -227,7 +262,7 @@ func (c *bigModExp) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return gas.Uint64()
 }
 
-func (c *bigModExp) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *bigModExp) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	var (
 		baseLen = new(big.Int).SetBytes(getData(input, 0, 32)).Uint64()
 		expLen  = new(big.Int).SetBytes(getData(input, 32, 32)).Uint64()
@@ -286,7 +321,7 @@ func (c *bn256Add) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return params.Bn256AddGasIstanbul
 }
 
-func (c *bn256Add) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *bn256Add) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	x, err := newCurvePoint(getData(input, 0, 64))
 	if err != nil {
 		return nil, err
@@ -312,7 +347,7 @@ func (c *bn256ScalarMul) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return params.Bn256ScalarMulGasIstanbul
 }
 
-func (c *bn256ScalarMul) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *bn256ScalarMul) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	p, err := newCurvePoint(getData(input, 0, 64))
 	if err != nil {
 		return nil, err
@@ -345,7 +380,7 @@ func (c *bn256Pairing) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return params.Bn256PairingBaseGasIstanbul + uint64(len(input)/192)*params.Bn256PairingPerPointGasIstanbul
 }
 
-func (c *bn256Pairing) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *bn256Pairing) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	// Handle some corner cases cheaply
 	if len(input)%192 > 0 {
 		return nil, errBadPairingInput
@@ -383,7 +418,7 @@ func (c *dneroBalance) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return params.DneroBalanceGas
 }
 
-func (c *dneroBalance) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *dneroBalance) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	address := common.BytesToAddress(input)
 	dneroBalance := evm.StateDB.GetDneroBalance(address)
 	dneroBalanceBytes := dneroBalance.Bytes()
@@ -400,10 +435,109 @@ func (c *dneroStake) RequiredGas(input []byte, blockHeight uint64) uint64 {
 	return params.DneroStakeGas
 }
 
-func (c *dneroStake) Run(evm *EVM, input []byte) ([]byte, error) {
+func (c *dneroStake) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
 	address := common.BytesToAddress(input)
 	dneroStake := evm.StateDB.GetDneroStake(address)
 	dneroStakeBytes := dneroStake.Bytes()
 	dneroStakeBytes32 := common.LeftPadBytes(dneroStakeBytes[:], 32) // easier to convert bytes32 into uint256 in smart contracts
 	return dneroStakeBytes32, nil
+}
+
+// transferDnero transfers the Dnero token
+type transferDnero struct {
+}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *transferDnero) RequiredGas(input []byte, blockHeight uint64) uint64 {
+	return params.DneroTransferGas
+}
+
+func (c *transferDnero) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
+	recipient := common.BytesToAddress(getData(input, 0, 20))
+	dneroWeiAmount := new(big.Int).SetBytes(getData(input, 20, 32))
+	if !CanTransferDnero(evm.StateDB, callerAddr, dneroWeiAmount) {
+		return common.Bytes{}, ErrInsufficientDneroBlance
+	}
+
+	// send Dnero from the contract to the specified recipient
+	TransferDnero(evm.StateDB, callerAddr, recipient, dneroWeiAmount)
+
+	return common.Bytes{}, nil
+}
+
+// stakeToSentry stake Dnero to Sentry node
+type stakeToSentry struct {
+}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *stakeToSentry) RequiredGas(input []byte, blockHeight uint64) uint64 {
+	return params.StakeToSentryGas
+}
+
+func (c *stakeToSentry) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
+	sentrySummary := getData(input, 0, 229)
+	dneroWeiAmount := new(big.Int).SetBytes(getData(input, 229, 32))
+
+	ok := StakeToSentry(evm.StateDB, callerAddr, sentrySummary, dneroWeiAmount)
+	if !ok {
+		return common.Bytes{}, ErrInvalidStakeOperation
+	}
+
+	return common.Bytes{}, nil
+}
+
+// unstakeFromSentry unstake Dnero from Sentry node
+type unstakeFromSentry struct {
+}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *unstakeFromSentry) RequiredGas(input []byte, blockHeight uint64) uint64 {
+	return params.UnstakeFromSentryGas
+}
+
+func (c *unstakeFromSentry) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
+	sentryAddr := common.BytesToAddress(input)
+	ok := UnstakeFromSentry(evm.StateDB, callerAddr, sentryAddr)
+	if !ok {
+		return common.Bytes{}, ErrInvalidStakeOperation
+	}
+	return common.Bytes{}, nil
+}
+
+// stakeToEEN stake DToken to EEN
+type stakeToEEN struct {
+}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *stakeToEEN) RequiredGas(input []byte, blockHeight uint64) uint64 {
+	return params.StakeToSentryGas
+}
+
+func (c *stakeToEEN) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
+	summary := getData(input, 0, 229)
+	dtokenWeiAmount := new(big.Int).SetBytes(getData(input, 261, 32))
+	ok := StakeToEEN(evm.StateDB, callerAddr, summary, dtokenWeiAmount)
+	if !ok {
+		return common.Bytes{}, ErrInvalidStakeOperation
+	}
+
+	return common.Bytes{}, nil
+}
+
+// unstakeFromEEN unstake from EEN
+type unstakeFromEEN struct {
+}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *unstakeFromEEN) RequiredGas(input []byte, blockHeight uint64) uint64 {
+	return params.UnstakeFromSentryGas
+}
+
+func (c *unstakeFromEEN) Run(evm *EVM, input []byte, callerAddr common.Address, contract *Contract) ([]byte, error) {
+	eenAddr := common.BytesToAddress(input)
+	ok := UnstakeFromEEN(evm.StateDB, callerAddr, eenAddr)
+	if !ok {
+		return common.Bytes{}, ErrInvalidStakeOperation
+	}
+	return common.Bytes{}, nil
 }

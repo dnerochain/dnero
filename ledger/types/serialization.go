@@ -8,7 +8,7 @@ import (
 	"github.com/dnerochain/dnero/rlp"
 )
 
-const maxTxSize = 1024 * 1024
+const maxTxSize = 8 * 1024 * 1024
 
 // ----------------- Common -------------------
 
@@ -35,7 +35,8 @@ const (
 	TxSmartContract
 	TxDepositStake
 	TxWithdrawStake
-	TxDepositStakeV2
+	TxDepositStakeV1
+	TxStakeRewardDistribution
 )
 
 func Fuzz(data []byte) int {
@@ -105,8 +106,12 @@ func TxFromBytes(raw []byte) (Tx, error) {
 		data := &WithdrawStakeTx{}
 		err = s.Decode(data)
 		return data, err
-	} else if txType == TxDepositStakeV2 {
+	} else if txType == TxDepositStakeV1 {
 		data := &DepositStakeTxV1{}
+		err = s.Decode(data)
+		return data, err
+	} else if txType == TxStakeRewardDistribution {
+		data := &StakeRewardDistributionTx{}
 		err = s.Decode(data)
 		return data, err
 	} else {
@@ -139,7 +144,9 @@ func TxToBytes(t Tx) ([]byte, error) {
 	case *WithdrawStakeTx:
 		txType = TxWithdrawStake
 	case *DepositStakeTxV1:
-		txType = TxDepositStakeV2
+		txType = TxDepositStakeV1
+	case *StakeRewardDistributionTx:
+		txType = TxStakeRewardDistribution
 	default:
 		return nil, errors.New("Unsupported message type")
 	}

@@ -256,7 +256,7 @@ func deploySmartContract(et *execTest, deployerPrivAcc *types.PrivAccount,
 	sequence uint64, assert *assert.Assertions) (contractAddr common.Address) {
 	deployerAcc := deployerPrivAcc.Account
 	deployerAddr := deployerAcc.Address
-	gasPrice := types.MinimumGasPriceJune2021
+	gasPrice := types.MinimumGasPriceNewFee
 	deploySCTx := &types.SmartContractTx{
 		From: types.TxInput{
 			Address:  deployerAddr,
@@ -319,7 +319,7 @@ func callSmartContract(et *execTest, contractAddr common.Address, callerPrivAcc 
 	gasLimit uint64, data common.Bytes, sequence uint64, assert *assert.Assertions) (vmRet common.Bytes, vmErr error, gasUsed uint64) {
 	callerAcc := callerPrivAcc.Account
 	callerAddr := callerAcc.Address
-	gasPrice := types.MinimumGasPriceJune2021
+	gasPrice := types.MinimumGasPriceNewFee
 	callSCTX := &types.SmartContractTx{
 		From: types.TxInput{
 			Address:  callerAddr,
@@ -358,7 +358,7 @@ func executeSmartContract(et *execTest, contractAddr common.Address, callerPrivA
 	callerAcc := callerPrivAcc.Account
 	callerAddr := callerAcc.Address
 	retrievedCallerAccBeforeExec := et.state().Delivered().GetAccount(callerAddr)
-	gasPrice := types.MinimumGasPriceJune2021
+	gasPrice := types.MinimumGasPriceNewFee
 	execSCTX := &types.SmartContractTx{
 		From: types.TxInput{
 			Address:  callerAddr,

@@ -25,16 +25,16 @@ const (
 	// MinimumTransactionFeeDTokenWei specifies the minimum fee for a regular transaction
 	MinimumTransactionFeeDTokenWei uint64 = 1e12
 
-	// June 2021 gas burn adjustment
+	// NewFee gas burn adjustment
 
 	// MinimumGasPrice is the minimum gas price for a smart contract transaction
-	MinimumGasPriceJune2021 uint64 = 4e12
+	MinimumGasPriceNewFee uint64 = 4e12
 
 	// MaximumTxGasLimit is the maximum gas limit for a smart contract transaction
-	MaximumTxGasLimitJune2021 uint64 = 20e6
+	MaximumTxGasLimitNewFee uint64 = 20e6
 
 	// MinimumTransactionFeeDTokenWei specifies the minimum fee for a regular transaction
-	MinimumTransactionFeeDTokenWeiJune2021 uint64 = 3e17
+	MinimumTransactionFeeDTokenWeiNewFee uint64 = 3e17
 
 	// MaxAccountsAffectedPerTx specifies the max number of accounts one transaction is allowed to modify to avoid spamming
 	MaxAccountsAffectedPerTx = 512
@@ -97,7 +97,7 @@ func GetMinimumGasPrice(blockHeight uint64) *big.Int {
 		return new(big.Int).SetUint64(MinimumGasPrice)
 	}
 
-	return new(big.Int).SetUint64(MinimumGasPriceJune2021)
+	return new(big.Int).SetUint64(MinimumGasPriceNewFee)
 }
 
 func GetMaxGasLimit(blockHeight uint64) *big.Int {
@@ -105,7 +105,7 @@ func GetMaxGasLimit(blockHeight uint64) *big.Int {
 		return new(big.Int).SetUint64(MaximumTxGasLimit)
 	}
 
-	return new(big.Int).SetUint64(MaximumTxGasLimitJune2021)
+	return new(big.Int).SetUint64(MaximumTxGasLimitNewFee)
 }
 
 func GetMinimumTransactionFeeDTokenWei(blockHeight uint64) *big.Int {
@@ -113,7 +113,7 @@ func GetMinimumTransactionFeeDTokenWei(blockHeight uint64) *big.Int {
 		return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWei)
 	}
 
-	return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWeiJune2021)
+	return new(big.Int).SetUint64(MinimumTransactionFeeDTokenWeiNewFee)
 }
 
 // Special handling for many-to-many SendTx
@@ -126,8 +126,8 @@ func GetSendTxMinimumTransactionFeeDTokenWei(numAccountsAffected uint64, blockHe
 		numAccountsAffected = 2
 	}
 
-	// minSendTxFee = numAccountsAffected * MinimumTransactionFeeDTokenWeiJune2021 / 2
-	minSendTxFee := big.NewInt(1).Mul(new(big.Int).SetUint64(numAccountsAffected), new(big.Int).SetUint64(MinimumTransactionFeeDTokenWeiJune2021))
+	// minSendTxFee = numAccountsAffected * MinimumTransactionFeeDTokenWeiNewFee / 2
+	minSendTxFee := big.NewInt(1).Mul(new(big.Int).SetUint64(numAccountsAffected), new(big.Int).SetUint64(MinimumTransactionFeeDTokenWeiNewFee))
 	minSendTxFee = big.NewInt(1).Div(minSendTxFee, new(big.Int).SetUint64(2))
 
 	return minSendTxFee

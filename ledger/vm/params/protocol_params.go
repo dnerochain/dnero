@@ -94,8 +94,14 @@ const (
 	Bn256PairingBaseGasIstanbul     uint64 = 45000 // Base price for an elliptic curve pairing check
 	Bn256PairingPerPointGasIstanbul uint64 = 34000 // Per-point price for an elliptic curve pairing check
 
-	DneroBalanceGas uint64 = 4   // Retrieve the Dnero balance for an address
-	DneroStakeGas   uint64 = 200 // Retrieve the total amount of staked Dnero for an address
+	DneroBalanceGas  uint64 = 4     // Retrieve the Dnero balance for an address
+	DneroStakeGas    uint64 = 200   // Retrieve the total amount of staked Dnero for an address
+	DneroTransferGas uint64 = 21000 // Transfer Dnero balance
+
+	StakeToSentryGas     uint64 = 21000 // Stake to Sentry
+	UnstakeFromSentryGas uint64 = 21000 // Unstake from Sentry
+	StakeToEENGas          uint64 = 21000 // Stake to EEN
+	UnstakeFromEENGas      uint64 = 21000 // Unstake from EEN
 )
 
 var (

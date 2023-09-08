@@ -582,7 +582,13 @@ func opGasLimit(pc *uint64, interpreter *EVMInterpreter, contract *Contract, mem
 
 // opChainID implements CHAINID opcode
 func opChainID(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	chainID := interpreter.evm.chainConfig.ChainID
+	var chainID *big.Int
+	if !SupportWrappedDnero(interpreter.evm.StateDB.GetBlockHeight()) {
+		chainID = interpreter.evm.chainConfig.ChainID
+	} else {
+		chainID = big.NewInt(0).Set(interpreter.evm.chainConfig.ChainID)
+	}
+
 	stack.push(chainID)
 	return nil, nil
 }
@@ -697,7 +703,8 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memor
 	gas -= gas / 64
 
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value)
+	dneroValue := big.NewInt(0)
+	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value, dneroValue)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -730,7 +737,8 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memo
 	// Apply EIP150
 	gas -= gas / 64
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, salt)
+	dneroEndowment := big.NewInt(0)
+	res, addr, returnGas, suberr := interpreter.evm.Create2(contract, input, gas, endowment, dneroEndowment, salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -760,7 +768,8 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value)
+	dneroValue := big.NewInt(0)
+	ret, returnGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value, dneroValue)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -789,7 +798,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *Contract, mem
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.evm.CallCode(contract, toAddr, args, gas, value)
+	ret, returnGas, err := interpreter.evm.CallCode(contract, toAddr, args, gas, value, new(big.Int)) // dneroValue set to 0: for now, we do not support Dnero transfer in inter-contract calls
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {

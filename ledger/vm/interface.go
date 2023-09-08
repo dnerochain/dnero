@@ -26,11 +26,15 @@ import (
 // StateDB is an EVM database for full state querying.
 type StateDB interface {
 	CreateAccount(common.Address)
+	GetAccount(common.Address) *types.Account
+	CreateAccountWithPreviousBalance(addr common.Address)
 
 	SubBalance(common.Address, *big.Int)
 	AddBalance(common.Address, *big.Int)
 	GetBalance(common.Address) *big.Int
 
+	SubDneroBalance(common.Address, *big.Int)
+	AddDneroBalance(common.Address, *big.Int)
 	GetDneroBalance(common.Address) *big.Int // GetDneroBalance returns the DneroWei balance of the given address
 	GetDneroStake(common.Address) *big.Int   // GetDneroStake returns the total amount of DneroWei the address staked to validators and/or sentrys
 
@@ -74,7 +78,7 @@ type CallContext interface {
 	// Call another contract
 	Call(env *EVM, me ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error)
 	// Take another's contract code and execute within our own context
-	CallCode(env *EVM, me ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error)
+	CallCode(env *EVM, me ContractRef, addr common.Address, data []byte, gas, value *big.Int, dneroValue *big.Int) ([]byte, error)
 	// Same as CallCode except sender and value is propagated from parent to child scope
 	DelegateCall(env *EVM, me ContractRef, addr common.Address, data []byte, gas *big.Int) ([]byte, error)
 	// Create a new contract
