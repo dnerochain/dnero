@@ -30,6 +30,8 @@ var Channels = []cmn.ChannelIDEnum{
 	cmn.ChannelIDPeerDiscovery,
 	cmn.ChannelIDPing,
 	cmn.ChannelIDSentry,
+	cmn.ChannelIDEliteEdgeNodeVote,
+	cmn.ChannelIDAggregatedEliteEdgeNodeVotes,
 }
 
 //
