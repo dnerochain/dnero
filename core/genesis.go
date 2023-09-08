@@ -1,12 +1,9 @@
 package core
 
-/** MAINNET **/
 const (
 	MainnetChainID = "mainnet"
 
-	MainnetGenesisBlockHash = "0x63092e20f5891732ca0da3fe4902de22911ea0deafd09450bea8f597c3eaa5e9"
+	MainnetGenesisBlockHash = "0xd8836c6cf3c3ccea0b015b4ed0f9efb0ffe6254db793a515843c9d0f68cbab65"
 
 	GenesisBlockHeight = uint64(0)
 )
-
-

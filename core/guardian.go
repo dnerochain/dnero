@@ -21,29 +21,29 @@ import (
 // AggregatedVotes represents votes on a block.
 type AggregatedVotes struct {
 	Block      common.Hash    // Hash of the block.
-	Gcp        common.Hash    // Hash of sentry candidate pool.
+	Scp        common.Hash    // Hash of sentry candidate pool.
 	Multiplies []uint32       // Multiplies of each signer.
 	Signature  *bls.Signature // Aggregated signiature.
 }
 
-func NewAggregateVotes(block common.Hash, gcp *SentryCandidatePool) *AggregatedVotes {
+func NewAggregateVotes(block common.Hash, scp *SentryCandidatePool) *AggregatedVotes {
 	return &AggregatedVotes{
 		Block:      block,
-		Gcp:        gcp.Hash(),
-		Multiplies: make([]uint32, gcp.WithStake().Len()),
+		Scp:        scp.Hash(),
+		Multiplies: make([]uint32, scp.WithStake().Len()),
 		Signature:  bls.NewAggregateSignature(),
 	}
 }
 
 func (a *AggregatedVotes) String() string {
-	return fmt.Sprintf("AggregatedVotes{Block: %s, Gcp: %s,  Multiplies: %v}", a.Block.Hex(), a.Gcp.Hex(), a.Multiplies)
+	return fmt.Sprintf("AggregatedVotes{Block: %s, Scp: %s,  Multiplies: %v}", a.Block.Hex(), a.Scp.Hex(), a.Multiplies)
 }
 
 // signBytes returns the bytes to be signed.
 func (a *AggregatedVotes) signBytes() common.Bytes {
 	tmp := &AggregatedVotes{
 		Block: a.Block,
-		Gcp:   a.Gcp,
+		Scp:   a.Scp,
 	}
 	b, _ := rlp.EncodeToBytes(tmp)
 	return b
@@ -64,7 +64,7 @@ func (a *AggregatedVotes) Sign(key *bls.SecretKey, signerIdx int) bool {
 // Merge creates a new aggregation that combines two vote sets. Returns nil, nil if input vote
 // is a subset of current vote.
 func (a *AggregatedVotes) Merge(b *AggregatedVotes) (*AggregatedVotes, error) {
-	if a.Block != b.Block || a.Gcp != b.Gcp {
+	if a.Block != b.Block || a.Scp != b.Scp {
 		return nil, errors.New("Cannot merge incompatible votes")
 	}
 	newMultiplies := make([]uint32, len(a.Multiplies))
@@ -86,7 +86,7 @@ func (a *AggregatedVotes) Merge(b *AggregatedVotes) (*AggregatedVotes, error) {
 	newSig.Aggregate(b.Signature)
 	return &AggregatedVotes{
 		Block:      a.Block,
-		Gcp:        a.Gcp,
+		Scp:        a.Scp,
 		Multiplies: newMultiplies,
 		Signature:  newSig,
 	}, nil
@@ -105,7 +105,7 @@ func (a *AggregatedVotes) Abs() int {
 
 // Pick selects better vote from two votes.
 func (a *AggregatedVotes) Pick(b *AggregatedVotes) (*AggregatedVotes, error) {
-	if a.Block != b.Block || a.Gcp != b.Gcp {
+	if a.Block != b.Block || a.Scp != b.Scp {
 		return nil, errors.New("Cannot compare incompatible votes")
 	}
 	if b.Abs() > a.Abs() {
@@ -115,17 +115,17 @@ func (a *AggregatedVotes) Pick(b *AggregatedVotes) (*AggregatedVotes, error) {
 }
 
 // Validate verifies the voteset.
-func (a *AggregatedVotes) Validate(gcp *SentryCandidatePool) result.Result {
-	if gcp.Hash() != a.Gcp {
-		return result.Error("gcp hash mismatch: gcp.Hash(): %s, vote.Gcp: %s", gcp.Hash().Hex(), a.Gcp.Hex())
+func (a *AggregatedVotes) Validate(scp *SentryCandidatePool) result.Result {
+	if scp.Hash() != a.Scp {
+		return result.Error("scp hash mismatch: scp.Hash(): %s, vote.Scp: %s", scp.Hash().Hex(), a.Scp.Hex())
 	}
-	if len(a.Multiplies) != gcp.WithStake().Len() {
-		return result.Error("multiplies size %d is not equal to gcp size %d", len(a.Multiplies), gcp.WithStake().Len())
+	if len(a.Multiplies) != scp.WithStake().Len() {
+		return result.Error("multiplies size %d is not equal to scp size %d", len(a.Multiplies), scp.WithStake().Len())
 	}
 	if a.Signature == nil {
 		return result.Error("signature cannot be nil")
 	}
-	pubKeys := gcp.WithStake().PubKeys()
+	pubKeys := scp.WithStake().PubKeys()
 	aggPubkey := bls.AggregatePublicKeysVec(pubKeys, a.Multiplies)
 	if !a.Signature.Verify(a.signBytes(), aggPubkey) {
 		return result.Error("signature verification failed")
@@ -137,7 +137,7 @@ func (a *AggregatedVotes) Validate(gcp *SentryCandidatePool) result.Result {
 func (a *AggregatedVotes) Copy() *AggregatedVotes {
 	clone := &AggregatedVotes{
 		Block: a.Block,
-		Gcp:   a.Gcp,
+		Scp:   a.Scp,
 	}
 	if a.Multiplies != nil {
 		clone.Multiplies = make([]uint32, len(a.Multiplies))
@@ -157,15 +157,15 @@ func (a *AggregatedVotes) Copy() *AggregatedVotes {
 var (
 	MinSentryStakeDeposit *big.Int
 
-	MinSentryStakeDeposit1000 *big.Int
+	//MinSentryStakeDeposit1000 *big.Int
 )
 
 func init() {
-	// Each stake deposit needs to be at least 10,000 Dnero
-	MinSentryStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(10000), new(big.Int).SetUint64(1e18))
+	// Each stake deposit needs to be at least 2,000 Dnero
+	MinSentryStakeDeposit = new(big.Int).Mul(new(big.Int).SetUint64(2000), new(big.Int).SetUint64(1e18))
 
 	// Lowering the sentry stake threshold to 1,000 Dnero
-	MinSentryStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
+	//MinSentryStakeDeposit1000 = new(big.Int).Mul(new(big.Int).SetUint64(1000), new(big.Int).SetUint64(1e18))
 
 }
 
@@ -181,55 +181,55 @@ func NewSentryCandidatePool() *SentryCandidatePool {
 }
 
 // Add inserts sentry into the pool; returns false if sentry is already added.
-func (gcp *SentryCandidatePool) Add(g *Sentry) bool {
-	k := sort.Search(gcp.Len(), func(i int) bool {
-		return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), g.Holder.Bytes()) >= 0
+func (scp *SentryCandidatePool) Add(g *Sentry) bool {
+	k := sort.Search(scp.Len(), func(i int) bool {
+		return bytes.Compare(scp.SortedSentrys[i].Holder.Bytes(), g.Holder.Bytes()) >= 0
 	})
 
-	if k == gcp.Len() {
-		gcp.SortedSentrys = append(gcp.SortedSentrys, g)
+	if k == scp.Len() {
+		scp.SortedSentrys = append(scp.SortedSentrys, g)
 		return true
 	}
 
 	// Sentry is already added.
-	if gcp.SortedSentrys[k].Holder == g.Holder {
+	if scp.SortedSentrys[k].Holder == g.Holder {
 		return false
 	}
-	gcp.SortedSentrys = append(gcp.SortedSentrys, nil)
-	copy(gcp.SortedSentrys[k+1:], gcp.SortedSentrys[k:])
-	gcp.SortedSentrys[k] = g
+	scp.SortedSentrys = append(scp.SortedSentrys, nil)
+	copy(scp.SortedSentrys[k+1:], scp.SortedSentrys[k:])
+	scp.SortedSentrys[k] = g
 	return true
 }
 
 // Remove removes a sentry from the pool; returns false if sentry is not found.
-func (gcp *SentryCandidatePool) Remove(g common.Address) bool {
-	k := sort.Search(gcp.Len(), func(i int) bool {
-		return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), g.Bytes()) >= 0
+func (scp *SentryCandidatePool) Remove(g common.Address) bool {
+	k := sort.Search(scp.Len(), func(i int) bool {
+		return bytes.Compare(scp.SortedSentrys[i].Holder.Bytes(), g.Bytes()) >= 0
 	})
 
-	if k == gcp.Len() || bytes.Compare(gcp.SortedSentrys[k].Holder.Bytes(), g.Bytes()) != 0 {
+	if k == scp.Len() || bytes.Compare(scp.SortedSentrys[k].Holder.Bytes(), g.Bytes()) != 0 {
 		return false
 	}
-	gcp.SortedSentrys = append(gcp.SortedSentrys[:k], gcp.SortedSentrys[k+1:]...)
+	scp.SortedSentrys = append(scp.SortedSentrys[:k], scp.SortedSentrys[k+1:]...)
 	return true
 }
 
 // Contains checks if given address is in the pool.
-func (gcp *SentryCandidatePool) Contains(g common.Address) bool {
-	k := sort.Search(gcp.Len(), func(i int) bool {
-		return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), g.Bytes()) >= 0
+func (scp *SentryCandidatePool) Contains(g common.Address) bool {
+	k := sort.Search(scp.Len(), func(i int) bool {
+		return bytes.Compare(scp.SortedSentrys[i].Holder.Bytes(), g.Bytes()) >= 0
 	})
 
-	if k == gcp.Len() || gcp.SortedSentrys[k].Holder != g {
+	if k == scp.Len() || scp.SortedSentrys[k].Holder != g {
 		return false
 	}
 	return true
 }
 
 // WithStake returns a new pool with withdrawn sentrys filtered out.
-func (gcp *SentryCandidatePool) WithStake() *SentryCandidatePool {
+func (scp *SentryCandidatePool) WithStake() *SentryCandidatePool {
 	ret := NewSentryCandidatePool()
-	for _, g := range gcp.SortedSentrys {
+	for _, g := range scp.SortedSentrys {
 		// Skip if sentry dons't have non-withdrawn stake
 		hasStake := false
 		for _, stake := range g.Stakes {
@@ -247,9 +247,19 @@ func (gcp *SentryCandidatePool) WithStake() *SentryCandidatePool {
 	return ret
 }
 
+// GetWithHolderAddress returns the sentry node correspond to the stake holder in the pool. Returns nil if not found.
+func (scp *SentryCandidatePool) GetWithHolderAddress(addr common.Address) *Sentry {
+	for _, g := range scp.SortedSentrys {
+		if g.Holder == addr {
+			return g
+		}
+	}
+	return nil
+}
+
 // Index returns index of a public key in the pool. Returns -1 if not found.
-func (gcp *SentryCandidatePool) Index(pubkey *bls.PublicKey) int {
-	for i, g := range gcp.SortedSentrys {
+func (scp *SentryCandidatePool) Index(pubkey *bls.PublicKey) int {
+	for i, g := range scp.SortedSentrys {
 		if pubkey.Equals(g.Pubkey) {
 			return i
 		}
@@ -258,9 +268,9 @@ func (gcp *SentryCandidatePool) Index(pubkey *bls.PublicKey) int {
 }
 
 // PubKeys exports sentrys' public keys.
-func (gcp *SentryCandidatePool) PubKeys() []*bls.PublicKey {
-	ret := make([]*bls.PublicKey, gcp.Len())
-	for i, g := range gcp.SortedSentrys {
+func (scp *SentryCandidatePool) PubKeys() []*bls.PublicKey {
+	ret := make([]*bls.PublicKey, scp.Len())
+	for i, g := range scp.SortedSentrys {
 		ret[i] = g.Pubkey
 	}
 	return ret
@@ -268,26 +278,26 @@ func (gcp *SentryCandidatePool) PubKeys() []*bls.PublicKey {
 
 // Implements sort.Interface for Sentrys based on
 // the Address field.
-func (gcp *SentryCandidatePool) Len() int {
-	return len(gcp.SortedSentrys)
+func (scp *SentryCandidatePool) Len() int {
+	return len(scp.SortedSentrys)
 }
-func (gcp *SentryCandidatePool) Swap(i, j int) {
-	gcp.SortedSentrys[i], gcp.SortedSentrys[j] = gcp.SortedSentrys[j], gcp.SortedSentrys[i]
+func (scp *SentryCandidatePool) Swap(i, j int) {
+	scp.SortedSentrys[i], scp.SortedSentrys[j] = scp.SortedSentrys[j], scp.SortedSentrys[i]
 }
-func (gcp *SentryCandidatePool) Less(i, j int) bool {
-	return bytes.Compare(gcp.SortedSentrys[i].Holder.Bytes(), gcp.SortedSentrys[j].Holder.Bytes()) < 0
+func (scp *SentryCandidatePool) Less(i, j int) bool {
+	return bytes.Compare(scp.SortedSentrys[i].Holder.Bytes(), scp.SortedSentrys[j].Holder.Bytes()) < 0
 }
 
-// Hash calculates the hash of gcp.
-func (gcp *SentryCandidatePool) Hash() common.Hash {
-	raw, err := rlp.EncodeToBytes(gcp)
+// Hash calculates the hash of scp.
+func (scp *SentryCandidatePool) Hash() common.Hash {
+	raw, err := rlp.EncodeToBytes(scp)
 	if err != nil {
 		logger.Panic(err)
 	}
 	return crypto.Keccak256Hash(raw)
 }
 
-func (gcp *SentryCandidatePool) DepositStake(source common.Address, holder common.Address, amount *big.Int, pubkey *bls.PublicKey, blockHeight uint64) (err error) {
+func (scp *SentryCandidatePool) DepositStake(source common.Address, holder common.Address, amount *big.Int, pubkey *bls.PublicKey, blockHeight uint64) (err error) {
 	minSentryStake := MinSentryStakeDeposit
 	//if blockHeight >= common.HeightLowerGNStakeThresholdTo1000 { //StakeDeposit Fork Removed
 		//minSentryStake = MinSentryStakeDeposit1000
@@ -297,7 +307,7 @@ func (gcp *SentryCandidatePool) DepositStake(source common.Address, holder commo
 	}
 
 	matchedHolderFound := false
-	for _, candidate := range gcp.SortedSentrys {
+	for _, candidate := range scp.SortedSentrys {
 		if candidate.Holder == holder {
 			matchedHolderFound = true
 			err = candidate.depositStake(source, amount)
@@ -310,20 +320,20 @@ func (gcp *SentryCandidatePool) DepositStake(source common.Address, holder commo
 
 	if !matchedHolderFound {
 		newSentry := &Sentry{
-			StakeHolder: newStakeHolder(holder, []*Stake{newStake(source, amount)}),
+			StakeHolder: NewStakeHolder(holder, []*Stake{NewStake(source, amount)}),
 			Pubkey:      pubkey,
 		}
-		gcp.Add(newSentry)
+		scp.Add(newSentry)
 	}
 	return nil
 }
 
-func (gcp *SentryCandidatePool) WithdrawStake(source common.Address, holder common.Address, currentHeight uint64) error {
+func (scp *SentryCandidatePool) WithdrawStake(source common.Address, holder common.Address, currentHeight uint64) error {
 	matchedHolderFound := false
-	for _, g := range gcp.SortedSentrys {
+	for _, g := range scp.SortedSentrys {
 		if g.Holder == holder {
 			matchedHolderFound = true
-			err := g.withdrawStake(source, currentHeight)
+			_, err := g.withdrawStake(source, currentHeight)
 			if err != nil {
 				return err
 			}
@@ -337,13 +347,13 @@ func (gcp *SentryCandidatePool) WithdrawStake(source common.Address, holder comm
 	return nil
 }
 
-func (gcp *SentryCandidatePool) ReturnStakes(currentHeight uint64) []*Stake {
+func (scp *SentryCandidatePool) ReturnStakes(currentHeight uint64) []*Stake {
 	returnedStakes := []*Stake{}
 
 	// need to iterate in the reverse order, since we may delete elemements
 	// from the slice while iterating through it
-	for cidx := gcp.Len() - 1; cidx >= 0; cidx-- {
-		g := gcp.SortedSentrys[cidx]
+	for cidx := scp.Len() - 1; cidx >= 0; cidx-- {
+		g := scp.SortedSentrys[cidx]
 		numStakeSources := len(g.Stakes)
 		for sidx := numStakeSources - 1; sidx >= 0; sidx-- { // similar to the outer loop, need to iterate in the reversed order
 			stake := g.Stakes[sidx]
@@ -360,7 +370,7 @@ func (gcp *SentryCandidatePool) ReturnStakes(currentHeight uint64) []*Stake {
 		}
 
 		if len(g.Stakes) == 0 { // the candidate's stake becomes zero, no need to keep track of the candidate anymore
-			gcp.Remove(g.Holder)
+			scp.Remove(g.Holder)
 		}
 	}
 	return returnedStakes

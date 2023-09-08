@@ -17,7 +17,6 @@ import (
 
 const (
 	// MaxNumRegularTxsPerBlock represents the max number of regular transaction can be inclulded in one block
-	//MaxNumRegularTxsPerBlock int = 256
 	MaxNumRegularTxsPerBlock int = 512
 )
 
@@ -122,19 +121,20 @@ func CalculateRootHash(items []common.Bytes) common.Hash {
 
 // BlockHeader contains the essential information of a block.
 type BlockHeader struct {
-	ChainID       string
-	Epoch         uint64
-	Height        uint64
-	Parent        common.Hash
-	HCC           CommitCertificate
-	SentryVotes *AggregatedVotes `rlp:"nil"` // Added in DneroV1.0 fork.
-	TxHash        common.Hash
-	ReceiptHash   common.Hash `json:"-"`
-	Bloom         Bloom       `json:"-"`
-	StateHash     common.Hash
-	Timestamp     *big.Int
-	Proposer      common.Address
-	Signature     *crypto.Signature
+	ChainID            string
+	Epoch              uint64
+	Height             uint64
+	Parent             common.Hash
+	HCC                CommitCertificate
+	SentryVotes      *AggregatedVotes    `rlp:"nil"` // Added in DneroV1.0 fork.
+	EliteEdgeNodeVotes *AggregatedEENVotes `rlp:"nil"` // Added in DneroV2.0 fork.
+	TxHash             common.Hash
+	ReceiptHash        common.Hash `json:"-"`
+	Bloom              Bloom       `json:"-"`
+	StateHash          common.Hash
+	Timestamp          *big.Int
+	Proposer           common.Address
+	Signature          *crypto.Signature
 
 	hash common.Hash // Cache of calculated hash.
 }
@@ -164,6 +164,25 @@ func (h *BlockHeader) EncodeRLP(w io.Writer) error {
 	}
 
 	// DneroV1.0 fork
+	if h.Height >= common.HeightEnableDneroV1 && h.Height < common.HeightEnableDneroV2 {
+		return rlp.Encode(w, []interface{}{
+			h.ChainID,
+			h.Epoch,
+			h.Height,
+			h.Parent,
+			h.HCC,
+			h.TxHash,
+			h.ReceiptHash,
+			h.Bloom,
+			h.StateHash,
+			h.Timestamp,
+			h.Proposer,
+			h.Signature,
+			h.SentryVotes,
+		})
+	}
+
+	// DneroV2.0 fork
 	return rlp.Encode(w, []interface{}{
 		h.ChainID,
 		h.Epoch,
@@ -178,8 +197,8 @@ func (h *BlockHeader) EncodeRLP(w io.Writer) error {
 		h.Proposer,
 		h.Signature,
 		h.SentryVotes,
+		h.EliteEdgeNodeVotes,
 	})
-
 }
 
 var _ rlp.Decoder = (*BlockHeader)(nil)
@@ -267,6 +286,24 @@ func (h *BlockHeader) DecodeRLP(stream *rlp.Stream) error {
 				return err
 			}
 			h.SentryVotes = gvotes
+		}
+	}
+
+	// DneroV2.0 fork
+	if h.Height >= common.HeightEnableDneroV2 {
+		raw, err := stream.Raw()
+		if err != nil {
+			return err
+		}
+		if common.Bytes2Hex(raw) == "c0" {
+			h.EliteEdgeNodeVotes = nil
+		} else {
+			evotes := &AggregatedEENVotes{}
+			rlp.DecodeBytes(raw, evotes)
+			if err != nil {
+				return err
+			}
+			h.EliteEdgeNodeVotes = evotes
 		}
 	}
 
