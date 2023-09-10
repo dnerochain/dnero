@@ -13,7 +13,7 @@ dnerocli daemon start [flags]
 ### Examples
 
 ```
-dnerocli daemon start --port=16889
+dnerocli daemon start --port=15611
 ```
 
 ### Options
