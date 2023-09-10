@@ -1,4 +1,4 @@
-# Dnero configuration
+# Dnero validator node configuration
 p2p:
   port: 
   seeds: 
