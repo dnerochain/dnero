@@ -1,7 +1,7 @@
-# Dnero configuration
+# Dnero private wallet node configuration
 genesis:
-  hash: "0xa01e8a75e33586ccaf354d4e1377dda94e36fbce310720682984d5427b80aa81"
+  hash: "0xe808ed164e5ea9c44a85d35f5d34b0dd5ce8cf7171ddc9782bf89ee310c6d9f6"
 p2p:
-  port: 12000
+  port: 21000
 rpc:
   enabled: true
