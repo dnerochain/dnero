@@ -17,12 +17,12 @@
 
 ```
 
-## Min DNERO For A Validator Node
+### Min DNERO For A Validator Node
 ```
 >Min: 2000000 DNERO
 ```
 
-## Min DNERO For A Sentry Node
+### Min DNERO For A Sentry Node
 ```
 >Min: 2000 DNERO
 ```
