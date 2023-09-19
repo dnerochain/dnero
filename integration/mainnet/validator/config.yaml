@@ -1,5 +1,14 @@
-# Dnero validator node configuration
+# Dnero mainnet validator node configuration
+storage:
+#  statePruningRetainedBlocks: 2048
 p2p:
-  port: 
-  seeds: 
+  opt: 0
+  port: 41000
+  seeds: 165.232.157.94:41000,149.28.194.235:41000,159.223.104.209:41000,143.198.132.249:41000,167.99.37.236:41000,164.92.98.151:41000,143.198.111.119:41000,45.76.249.125:41000,167.99.6.229:41000,146.190.119.143:41000,134.209.178.175:41000
   seedPeerOnlyOutbound: true
+rpc:
+  port: 15511
+  enabled: true
+  address: 127.0.0.1
+log:
+  levels: "*:info,sentry:debug"
