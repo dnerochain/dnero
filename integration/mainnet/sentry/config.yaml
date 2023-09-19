@@ -1,0 +1,18 @@
+# Dnero mainnet sentry node configuration
+storage:
+  statePruningRetainedBlocks: 2048
+p2p:
+  opt: 0
+  port: 41000
+  seeds: 165.232.157.94:41000,149.28.194.235:41000,159.223.104.209:41000,143.198.132.249:41000,167.99.37.236:41000,164.92.98.151:41000,143.198.111.119:41000,192.168.1.97:41000,45.77.71.222:41000,45.76.249.125:41000,100.64.0.150:41000
+  minNumPeers: 8
+  maxNumPeers: 96
+  natMapping: true
+rpc:
+  port: 15511
+  enabled: true
+  address: 127.0.0.1
+sentry:
+  is_sentry: true
+log:
+  levels: "*:info,sentry:debug"
