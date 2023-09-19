@@ -1,0 +1,16 @@
+# Dnero testnet validator node configuration
+genesis:
+  hash: "0xd15045f1332ca96845175f79d14df3df17bc174da9313dc262f54610666657dc"
+storage:
+#  statePruningRetainedBlocks: 2048
+p2p:
+  p2p:
+  port: 51000
+  seeds: 54.151.72.227:51000,204.151.72.27:51000
+  seedPeerOnlyOutbound: true
+rpc:
+  port: 16611
+  enabled: true
+  address: 127.0.0.1
+log:
+  levels: "*:info"
