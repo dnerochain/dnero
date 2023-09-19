@@ -1,4 +1,4 @@
-# Dnero private wallet node configuration
+# Dnero privatenet wallet node configuration
 genesis:
   hash: "0xe808ed164e5ea9c44a85d35f5d34b0dd5ce8cf7171ddc9782bf89ee310c6d9f6"
 p2p:
