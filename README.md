@@ -8,7 +8,7 @@
 >Validator Reward Activation Block #50001
 >Smart Contract Activation Block #60001
 >ETH-RPC Compatibility Activation Block #70001
->New Tx Fee Adjustment Activation Block #80001
+>New Tx Fee Adjustment Activation Block #80001  (Need: 20000 GWEI ~0.4 DTOKEN For Tx Fee)
 >Sample Staking Reward Activation Block #90001
 >DneroV2.0 Feature Activation Block #100001
 >Tx Wrapper Extension Activation Block #110001
