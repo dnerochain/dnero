@@ -26,3 +26,8 @@
 ```
 >Min: 2000 DNERO
 ```
+
+### Min DTOKEN For A Elite Edge Node
+```
+>Min: 20000 DTOKEN
+```
